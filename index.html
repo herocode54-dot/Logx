@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AURA Telemetry Streamer | External Medical Equipment Log Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Navigation Header -->
+    <header class="navbar">
+      <div class="brand-section">
+        <div class="logo-badge">
+          <span class="pulse-dot"></span>
+          <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <div class="brand-title">AURA <span>LOGx SIMULATOR</span></div>
+          <div class="brand-subtitle">External Medical Equipment Telemetry Streamer</div>
+        </div>
+      </div>
+
+      <div class="header-stats">
+        <div class="header-stat-box">
+          <span class="stat-label">STATUS</span>
+          <div class="stat-value-badge" id="systemStatusBadge">
+            <span class="status-indicator-dot idle"></span>
+            <span id="systemStatusText">STANDBY</span>
+          </div>
+        </div>
+        <div class="header-stat-box">
+          <span class="stat-label">PACKETS TRANSMITTED</span>
+          <span class="stat-number" id="statSent">0</span>
+        </div>
+        <div class="header-stat-box">
+          <span class="stat-label">INGESTION ACK (200)</span>
+          <span class="stat-number success" id="statSuccess">0</span>
+        </div>
+        <div class="header-stat-box">
+          <span class="stat-label">ANOMALIES DETECTED</span>
+          <span class="stat-number alert" id="statAnomalies">0</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Grid Content -->
+    <main class="main-layout">
+      <!-- Left Column: Controls & Configuration -->
+      <section class="config-column">
+        <!-- Target Server Settings -->
+        <div class="panel glass-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+              Target AURA Server Target
+            </div>
+            <button class="btn-sm btn-ghost" id="btnTestPing" title="Test Connection">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+              Ping Server
+            </button>
+          </div>
+          
+          <div class="form-grid">
+            <div class="form-group span-8">
+              <label for="serverIp">Server Host / IP</label>
+              <input type="text" id="serverIp" value="127.0.0.1" placeholder="e.g. 192.168.1.100 or localhost">
+            </div>
+            <div class="form-group span-4">
+              <label for="serverPort">Port</label>
+              <input type="text" id="serverPort" value="8000" placeholder="8000">
+            </div>
+            <div class="form-group span-6">
+              <label for="hospitalId">Hospital ID</label>
+              <input type="text" id="hospitalId" value="demo-hospital" placeholder="demo-hospital">
+            </div>
+            <div class="form-group span-6">
+              <label for="apiKey">Ingest API Key</label>
+              <input type="text" id="apiKey" value="aura_live_ingest_key_2026">
+            </div>
+            <div class="form-group span-12 endpoint-preview">
+              <span class="preview-tag">TARGET ENDPOINT:</span>
+              <code id="endpointPreview">http://127.0.0.1:8000/api/v1/ingest/telemetry</code>
+            </div>
+          </div>
+        </div>
+
+        <!-- Device & Simulation Mode -->
+        <div class="panel glass-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+              Device Telemetry Configuration
+            </div>
+            <div class="mode-toggle">
+              <button class="toggle-btn active" id="btnModeSingle">Single Device</button>
+              <button class="toggle-btn" id="btnModeFleet">Fleet Simulator (5 Devices)</button>
+            </div>
+          </div>
+
+          <div id="singleDeviceControls" class="form-grid">
+            <div class="form-group span-4">
+              <label for="deviceId">Device ID</label>
+              <input type="text" id="deviceId" value="DEV000001">
+            </div>
+            <div class="form-group span-4">
+              <label for="deviceType">Device Type</label>
+              <select id="deviceType">
+                <option value="Ventilator">Ventilator</option>
+                <option value="Patient monitor">Patient monitor</option>
+                <option value="CT scanner">CT scanner</option>
+                <option value="MRI scanner">MRI scanner</option>
+                <option value="Infusion pump">Infusion pump</option>
+                <option value="ECG machine">ECG machine</option>
+                <option value="Dialysis unit">Dialysis unit</option>
+                <option value="Defibrillator">Defibrillator</option>
+              </select>
+            </div>
+            <div class="form-group span-4">
+              <label for="department">Department</label>
+              <select id="department">
+                <option value="Intensive Care Unit (ICU)">Intensive Care Unit (ICU)</option>
+                <option value="Radiology Department">Radiology Department</option>
+                <option value="Operating Room (OR)">Operating Room (OR)</option>
+                <option value="Clinical Laboratory">Clinical Laboratory</option>
+                <option value="Emergency Ward">Emergency Ward</option>
+                <option value="General Ward">General Ward</option>
+                <option value="Cardiology Lab">Cardiology Lab</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="fleetDeviceList" class="fleet-list" style="display:none;">
+            <div class="fleet-item active" data-dev="DEV000001">
+              <span class="fleet-badge">ICU</span>
+              <div class="fleet-info"><strong>DEV000001</strong> - Ventilator</div>
+              <span class="fleet-status ok">ACTIVE</span>
+            </div>
+            <div class="fleet-item" data-dev="DEV000002">
+              <span class="fleet-badge">ICU</span>
+              <div class="fleet-info"><strong>DEV000002</strong> - Patient monitor</div>
+              <span class="fleet-status ok">ACTIVE</span>
+            </div>
+            <div class="fleet-item" data-dev="DEV000003">
+              <span class="fleet-badge">RAD</span>
+              <div class="fleet-info"><strong>DEV000003</strong> - CT scanner</div>
+              <span class="fleet-status ok">ACTIVE</span>
+            </div>
+            <div class="fleet-item" data-dev="DEV000004">
+              <span class="fleet-badge">WARD</span>
+              <div class="fleet-info"><strong>DEV000004</strong> - Infusion pump</div>
+              <span class="fleet-status ok">ACTIVE</span>
+            </div>
+            <div class="fleet-item" data-dev="DEV000005">
+              <span class="fleet-badge">LAB</span>
+              <div class="fleet-info"><strong>DEV000005</strong> - ECG machine</div>
+              <span class="fleet-status ok">ACTIVE</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Failure Simulation Injector -->
+        <div class="panel glass-panel highlight-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon warning-icon"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+              Failure Simulation Injector
+            </div>
+            <span class="badge-scenario" id="currentScenarioBadge">ACTIVE: NORMAL (OK)</span>
+          </div>
+
+          <div class="scenario-selector-grid">
+            <button class="scenario-btn active" data-scenario="OK">
+              <div class="scenario-name">Normal Operation</div>
+              <div class="scenario-desc">Stable sensors, battery >85%, temp ~36.8°C</div>
+            </button>
+            <button class="scenario-btn warning" data-scenario="BAT_CRITICAL">
+              <div class="scenario-name">Battery Degradation</div>
+              <div class="scenario-desc">Drops battery to 15-22% & code BAT_CRITICAL</div>
+            </button>
+            <button class="scenario-btn danger" data-scenario="TEMP_CRITICAL">
+              <div class="scenario-name">Thermal Overheating</div>
+              <div class="scenario-desc">Ramps temperature to 45-52°C & TEMP_CRITICAL</div>
+            </button>
+            <button class="scenario-btn info" data-scenario="SENSOR_ERR">
+              <div class="scenario-name">Sensor Drift / Error</div>
+              <div class="scenario-desc">Emits calibration drift & SENSOR_ERR code</div>
+            </button>
+            <button class="scenario-btn alert" data-scenario="POWER_FLUC">
+              <div class="scenario-name">Power Fluctuations</div>
+              <div class="scenario-desc">Voltage drops & code POWER_FLUC</div>
+            </button>
+            <button class="scenario-btn alert" data-scenario="SYS_RESET">
+              <div class="scenario-name">Microcontroller Reset</div>
+              <div class="scenario-desc">Simulates system freeze & SYS_RESET event</div>
+            </button>
+          </div>
+
+          <!-- Quick Failure Burst Buttons -->
+          <div class="quick-inject-bar">
+            <span class="quick-inject-label">QUICK BURST INJECT:</span>
+            <button class="btn-pill btn-burst" onclick="app.quickInject('BAT_CRITICAL')">⚡ Inject Battery Failure</button>
+            <button class="btn-pill btn-burst" onclick="app.quickInject('TEMP_CRITICAL')">🔥 Inject Overheat Alert</button>
+            <button class="btn-pill btn-burst" onclick="app.quickInject('SENSOR_ERR')">⚠️ Inject Sensor Fault</button>
+          </div>
+        </div>
+
+        <!-- Stream Engine Controls -->
+        <div class="panel glass-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              Stream Engine & Transmission Controls
+            </div>
+            <div class="rate-select-group">
+              <label for="intervalSelect">Interval:</label>
+              <select id="intervalSelect">
+                <option value="500">0.5 sec (Fast)</option>
+                <option value="1000">1.0 sec</option>
+                <option value="2000">2.0 sec</option>
+                <option value="3000" selected>3.0 sec (Standard)</option>
+                <option value="5000">5.0 sec</option>
+                <option value="10000">10.0 sec</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="control-actions-grid">
+            <button class="btn-primary btn-lg" id="btnStartStream">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              Start Log Stream
+            </button>
+            <button class="btn-warning btn-lg" id="btnPauseStream" style="display:none;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+              Pause Stream
+            </button>
+            <button class="btn-danger btn-lg" id="btnStopStream" style="display:none;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
+              Stop Stream
+            </button>
+            <button class="btn-secondary" id="btnStepOnce">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+              Send Single Log
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Visualizer & Live Terminal Console -->
+      <section class="console-column">
+        <!-- Live Device Telemetry Telemetrics Gauges -->
+        <div class="panel glass-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>
+              Simulated Telemetry Metrics & Waveform
+            </div>
+            <div class="telemetry-chip" id="lastActiveDeviceChip">DEV000001 (Ventilator)</div>
+          </div>
+
+          <div class="gauges-container">
+            <div class="gauge-card">
+              <div class="gauge-title">Battery Health</div>
+              <div class="gauge-val" id="gaugeBattery">94.2<span class="unit">%</span></div>
+              <div class="gauge-bar-track">
+                <div class="gauge-bar-fill battery-color" id="barBattery" style="width: 94.2%;"></div>
+              </div>
+            </div>
+
+            <div class="gauge-card">
+              <div class="gauge-title">Temperature</div>
+              <div class="gauge-val" id="gaugeTemp">36.7<span class="unit">°C</span></div>
+              <div class="gauge-bar-track">
+                <div class="gauge-bar-fill temp-color" id="barTemp" style="width: 45%;"></div>
+              </div>
+            </div>
+
+            <div class="gauge-card">
+              <div class="gauge-title">Workload Factor</div>
+              <div class="gauge-val" id="gaugeLoad">62.0<span class="unit">%</span></div>
+              <div class="gauge-bar-track">
+                <div class="gauge-bar-fill load-color" id="barLoad" style="width: 62%;"></div>
+              </div>
+            </div>
+
+            <div class="gauge-card">
+              <div class="gauge-title">Voltage Supply</div>
+              <div class="gauge-val" id="gaugeVoltage">24.1<span class="unit">V</span></div>
+              <div class="gauge-bar-track">
+                <div class="gauge-bar-fill voltage-color" id="barVoltage" style="width: 80%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Oscilloscope Waveform Canvas -->
+          <div class="waveform-container">
+            <div class="waveform-header">
+              <span class="waveform-tag">REALTIME EQUIPMENT SIGNAL WAVEFORM</span>
+              <span class="waveform-tag frequency" id="signalPulseRate">RATE: 68 BPM / NORMAL</span>
+            </div>
+            <canvas id="waveformCanvas" width="800" height="90"></canvas>
+          </div>
+        </div>
+
+        <!-- Terminal Console Panel -->
+        <div class="panel glass-panel terminal-panel">
+          <div class="panel-header terminal-topbar">
+            <div class="terminal-dots">
+              <span class="terminal-dot red"></span>
+              <span class="terminal-dot yellow"></span>
+              <span class="terminal-dot green"></span>
+              <span class="terminal-title">LIVE TELEMETRY STREAM CONSOLE (HTTP / REST)</span>
+            </div>
+            <div class="terminal-actions">
+              <label class="auto-scroll-toggle">
+                <input type="checkbox" id="autoScrollCheck" checked>
+                <span>Auto-scroll</span>
+              </label>
+              <button class="btn-xs" id="btnClearConsole">Clear</button>
+              <button class="btn-xs" id="btnExportLogs">Export JSON</button>
+            </div>
+          </div>
+
+          <div class="terminal-body" id="terminalConsole">
+            <div class="terminal-entry system-msg">
+              <span class="time">[INIT]</span>
+              <span class="msg">AURA External Medical Equipment Log Generator v2.0 initialized. Ready to stream telemetry logs.</span>
+            </div>
+            <div class="terminal-entry guide-msg">
+              <span class="time">[INFO]</span>
+              <span class="msg">Press <strong>Start Log Stream</strong> to begin broadcasting live simulated device telemetry to Central AURA server.</span>
+            </div>
+          </div>
+
+          <!-- Terminal Status Bar -->
+          <div class="terminal-footer">
+            <div class="terminal-stat-item">
+              <span>LATENCY:</span>
+              <strong id="footerLatency">-- ms</strong>
+            </div>
+            <div class="terminal-stat-item">
+              <span>LAST STATUS:</span>
+              <strong id="footerLastStatus" class="tag-neutral">IDLE</strong>
+            </div>
+            <div class="terminal-stat-item">
+              <span>ACTIVE ERROR CODE:</span>
+              <strong id="footerErrorCode" class="tag-ok">OK</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div>AURA Medical Device Reliability Intelligence Platform &bull; External Log Generator Client</div>
+      <div>Compatible with AURA API v1 Ingestion Specification</div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
