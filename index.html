@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LOGx — AURA Autonomous Telemetry & ML Anomaly Streamer</title>
-  <!-- Google Fonts -->
+  <title>LOGx — AURA Autonomous Telemetry & ML Streamer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -266,7 +265,7 @@
        ========================================================================== */
     .main-grid {
       display: grid;
-      grid-template-columns: 560px 1fr;
+      grid-template-columns: 540px 1fr;
       gap: 16px;
       align-items: start;
     }
@@ -383,11 +382,6 @@
       box-shadow: 0 6px 20px rgba(0, 212, 255, 0.6);
       transform: translateY(-1px);
     }
-    .btn-warning {
-      background: linear-gradient(135deg, #ff8f00 0%, #ffb300 100%);
-      color: #000;
-      font-weight: 700;
-    }
     .btn-danger {
       background: linear-gradient(135deg, #d32f2f 0%, #ff3b3b 100%);
       color: #fff;
@@ -416,10 +410,10 @@
       border-radius: 4px;
     }
 
-    /* RANDOMIZED PARAMETER LIVE RADAR GAUGES */
+    /* RANDOMIZED PARAMETER LIVE DISPLAY */
     .random-param-display {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 8px;
       background: rgba(0, 0, 0, 0.3);
       padding: 12px;
@@ -437,7 +431,7 @@
       gap: 2px;
     }
     .live-metric-title {
-      font-size: 0.65rem;
+      font-size: 0.62rem;
       font-weight: 700;
       color: var(--text-muted);
       text-transform: uppercase;
@@ -445,14 +439,30 @@
     }
     .live-metric-val {
       font-family: var(--font-mono);
-      font-size: 1.05rem;
+      font-size: 0.98rem;
       font-weight: 700;
       color: #fff;
     }
     .live-metric-val .unit {
-      font-size: 0.72rem;
+      font-size: 0.7rem;
       color: var(--text-muted);
       margin-left: 2px;
+    }
+
+    /* PAYLOAD JSON INSPECTOR PREVIEW */
+    .payload-inspector-box {
+      background: #02060e;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: #7dd3fc;
+      margin-top: 10px;
+      max-height: 130px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      line-height: 1.4;
     }
 
     /* STREAM ACTIONS */
@@ -714,7 +724,7 @@
       <div class="banner-content">
         <div class="banner-icon" id="bannerIcon">🚨</div>
         <div>
-          <div class="banner-title" id="bannerTitle">[CRITICAL ALERT RECEIVED] DEV000001 — Urgent Maintenance Required</div>
+          <div class="banner-title" id="bannerTitle">[CRITICAL ALERT RECEIVED] DEV000025 — Critical Failure Detected</div>
           <div class="banner-desc">
             <span id="bannerMetrics">Health: 14.2% | Anomaly: 75.0</span> &bull; 
             <strong>Action:</strong> <span id="bannerAction">Schedule Immediate Maintenance</span>
@@ -810,11 +820,12 @@
           <div class="form-group col-6">
             <label for="deviceScope">Device Selection Mode</label>
             <select id="deviceScope">
-              <option value="random_fleet" selected>Random Hospital Fleet (All 12 Devices)</option>
-              <option value="random_icu">Random ICU Devices (Ventilators, Monitors, Defibs)</option>
+              <option value="random_all" selected>Random Hospital Fleet (All Device Types)</option>
+              <option value="random_icu">Random ICU (Ventilators, Monitors, Defibs)</option>
               <option value="random_rad">Random Radiology (CT, MRI, X-ray)</option>
+              <option value="fixed_dev25">Fixed: DEV000025 (Ventilator)</option>
+              <option value="fixed_dev10">Fixed: DEV000010 (CT scanner)</option>
               <option value="fixed_dev1">Fixed: DEV000001 (Ventilator)</option>
-              <option value="fixed_dev5">Fixed: DEV000005 (Patient monitor)</option>
             </select>
           </div>
           <div class="form-group col-6">
@@ -828,44 +839,49 @@
             </select>
           </div>
           <div class="form-group col-12">
-            <label for="failureProbability">Failure Anomaly Injection Probability</label>
+            <label for="failureProbability">Failure Anomaly Injection Rate</label>
             <select id="failureProbability">
               <option value="0.10">Low Anomaly Rate (~10% Critical/Warning, 90% Normal OK)</option>
-              <option value="0.25" selected>Realistic Hospital Mixed Rate (~25% Critical/High/Warn, 75% OK)</option>
+              <option value="0.25" selected>Realistic Hospital Mixed Rate (~25% Critical/High, 75% OK)</option>
               <option value="0.50">Stress Test (~50% Failures & Overheats, 50% OK)</option>
-              <option value="0.80">Extreme Failure Storm (~80% Critical/Overheat/Sensor Faults)</option>
+              <option value="0.80">Extreme Failure Storm (~80% Critical Anomalies)</option>
             </select>
           </div>
         </div>
 
-        <!-- REAL-TIME GENERATED PARAMETER DISPLAY -->
-        <div style="margin-top: 14px;">
-          <label>Live Random Telemetry Parameters (Last Generated)</label>
+        <!-- REAL-TIME GENERATED 11-PARAMETER DISPLAY -->
+        <div style="margin-top: 12px;">
+          <label>Required ML Input Telemetry (11 Required Parameters)</label>
           <div class="random-param-display">
             <div class="live-metric-card">
-              <span class="live-metric-title">Device & Dept</span>
-              <span class="live-metric-val" id="liveParamDev" style="font-size: 0.9rem;">DEV000001 <span class="unit">ICU</span></span>
+              <span class="live-metric-title">device_id & type</span>
+              <span class="live-metric-val" id="liveParamDev" style="font-size: 0.85rem;">DEV000025 <span class="unit">Ventilator</span></span>
             </div>
             <div class="live-metric-card">
-              <span class="live-metric-title">ML Error Code</span>
+              <span class="live-metric-title">error_code</span>
               <span class="live-metric-val" id="liveParamCode" style="color: var(--color-low);">OK</span>
             </div>
             <div class="live-metric-card">
-              <span class="live-metric-title">Battery Health</span>
-              <span class="live-metric-val" id="liveParamBat">94.2<span class="unit">%</span></span>
+              <span class="live-metric-title">battery_health</span>
+              <span class="live-metric-val" id="liveParamBat">92.5<span class="unit">%</span></span>
             </div>
             <div class="live-metric-card">
-              <span class="live-metric-title">Component Temp</span>
+              <span class="live-metric-title">temperature</span>
               <span class="live-metric-val" id="liveParamTemp">36.8<span class="unit">°C</span></span>
             </div>
             <div class="live-metric-card">
-              <span class="live-metric-title">Workload Load</span>
-              <span class="live-metric-val" id="liveParamLoad">58.0<span class="unit">%</span></span>
+              <span class="live-metric-title">load_percent</span>
+              <span class="live-metric-val" id="liveParamLoad">62.0<span class="unit">%</span></span>
             </div>
             <div class="live-metric-card">
-              <span class="live-metric-title">Supply Voltage</span>
-              <span class="live-metric-val" id="liveParamVolt">24.1<span class="unit">V</span></span>
+              <span class="live-metric-title">voltage</span>
+              <span class="live-metric-val" id="liveParamVolt">23.8<span class="unit">V</span></span>
             </div>
+          </div>
+
+          <div style="margin-top: 8px;">
+            <label>Exact Outgoing JSON Payload Preview</label>
+            <div class="payload-inspector-box" id="payloadInspector">{ "hospital_id": "demo-hospital", "device_id": "DEV000025", "device_type": "Ventilator", "department": "Intensive Care Unit (ICU)", "timestamp": "...", "battery_health": 92.5, "temperature": 36.8, "load_percent": 62.0, "error_code": "OK", "operating_hours": 1200.0, "voltage": 23.8 }</div>
           </div>
         </div>
 
@@ -908,7 +924,7 @@
           <div class="terminal-screen" id="terminalScreen">
             <div class="log-line log-sys">
               <span class="log-time">[INIT]</span>
-              <span>Autonomous Random Telemetry Generator initialized. Click <strong>Start Automatic Stream</strong> to begin transmitting live mixed ML logs.</span>
+              <span>Autonomous Telemetry Generator ready. Streaming exact 11-field ML payload with mixed random states.</span>
             </div>
           </div>
         </div>
@@ -923,7 +939,7 @@
           <div class="ml-badge-container">
             <div>
               <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Device Target</div>
-              <div style="font-family: var(--font-mono); font-size: 1.05rem; font-weight: 700; color: #fff;" id="mlDevId">DEV000001</div>
+              <div style="font-family: var(--font-mono); font-size: 1.05rem; font-weight: 700; color: #fff;" id="mlDevId">DEV000025</div>
               <div style="font-size: 0.72rem; color: var(--text-secondary);" id="mlDevType">Ventilator</div>
             </div>
             <div id="mlRiskBadge" class="risk-badge LOW">LOW</div>
@@ -1008,32 +1024,34 @@
 </div>
 
 <!-- ==========================================================================
-     CORE JAVASCRIPT ENGINE (AUTONOMOUS RANDOM TELEMETRY GENERATOR)
+     CORE JAVASCRIPT ENGINE (11-FIELD RANDOM ML TELEMETRY STREAMER)
      ========================================================================== -->
 <script>
 /**
- * Standard Hospital Device Catalog
+ * Registered Medical Devices with valid IDs and Departments
  */
 const DEVICE_REGISTRY = [
-  { id: 'DEV000001', type: 'Ventilator', dept: 'Intensive Care Unit (ICU)' },
+  { id: 'DEV000025', type: 'Ventilator', dept: 'Intensive Care Unit (ICU)' },
   { id: 'DEV000005', type: 'Patient monitor', dept: 'Intensive Care Unit (ICU)' },
   { id: 'DEV000010', type: 'CT scanner', dept: 'Radiology Department' },
   { id: 'DEV000015', type: 'MRI scanner', dept: 'Radiology Department' },
   { id: 'DEV000020', type: 'Blood analyzer', dept: 'Clinical Laboratory' },
-  { id: 'DEV000025', type: 'Infusion pump', dept: 'General Ward' },
+  { id: 'DEV000001', type: 'Ventilator', dept: 'Intensive Care Unit (ICU)' },
   { id: 'DEV000030', type: 'Defibrillator', dept: 'Intensive Care Unit (ICU)' },
   { id: 'DEV000035', type: 'ECG machine', dept: 'General Ward' },
   { id: 'DEV000040', type: 'Ultrasound machine', dept: 'Radiology Department' },
   { id: 'DEV000045', type: 'PCR machine', dept: 'Clinical Laboratory' },
   { id: 'DEV000050', type: 'Anesthesia machine', dept: 'Intensive Care Unit (ICU)' },
-  { id: 'DEV000055', type: 'X-ray machine', dept: 'Radiology Department' }
+  { id: 'DEV000055', type: 'X-ray machine', dept: 'Radiology Department' },
+  { id: 'DEV000060', type: 'Infusion pump', dept: 'General Ward' },
+  { id: 'DEV000065', type: 'Surgical lights', dept: 'Operating Rooms (OR)' },
+  { id: 'DEV000070', type: 'Robotic surgical system', dept: 'Operating Rooms (OR)' }
 ];
 
 function rng(lo, hi) { return +(lo + Math.random() * (hi - lo)).toFixed(1); }
-function rngi(lo, hi){ return Math.floor(lo + Math.random() * (hi - lo)); }
 
 /**
- * AURA Client
+ * AURA Client - Robust HTTP POST with NO premature aborts
  */
 class AuraClient {
   constructor(host, port, hospitalId, apiKey) {
@@ -1059,32 +1077,23 @@ class AuraClient {
     const url = this.getEndpoint();
     const start = performance.now();
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
-
       const res = await fetch(url, {
         method: 'POST',
         headers: this.buildHeaders(),
         body: JSON.stringify({
           hospital_id: this.hospitalId,
-          device_id: 'DEV000001',
+          device_id: 'DEV000025',
           device_type: 'Ventilator',
           department: 'Intensive Care Unit (ICU)',
           timestamp: new Date().toISOString(),
-          battery_health: 98.0,
-          temperature: 36.5,
+          battery_health: 95.0,
+          temperature: 36.8,
           load_percent: 50.0,
           error_code: 'OK',
-          operating_hours: 1000.0,
-          voltage: 24.0,
-          humidity: 45.0,
-          error_count_7d: 0,
-          battery_cycles: 100,
-          days_since_maint: 15
-        }),
-        signal: controller.signal
+          operating_hours: 1200.0,
+          voltage: 24.0
+        })
       });
-      clearTimeout(timeoutId);
       const latency = Math.round(performance.now() - start);
 
       if (res.ok) {
@@ -1103,16 +1112,11 @@ class AuraClient {
     const url = this.getEndpoint();
     const start = performance.now();
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-
       const res = await fetch(url, {
         method: 'POST',
         headers: this.buildHeaders(),
-        body: JSON.stringify(payload),
-        signal: controller.signal
+        body: JSON.stringify(payload)
       });
-      clearTimeout(timeoutId);
       const latency = Math.round(performance.now() - start);
 
       let data = {};
@@ -1238,20 +1242,17 @@ class ResponseCard {
     let rootCause = 'None (Normal Operation)';
     let action = 'Routine Monitoring';
     if (payload.error_code === 'BAT_CRITICAL' || payload.battery_health < 25) {
-      rootCause = 'Battery Degradation / Internal Resistance';
+      rootCause = 'Battery Degradation / Critical Risk';
       action = 'Schedule Immediate Battery Replacement';
     } else if (payload.error_code === 'TEMP_CRITICAL' || payload.temperature > 46) {
-      rootCause = 'Cooling Fan Failure / Thermal Overheating';
-      action = 'Inspect Chassis Ventilation & Thermal Paste';
+      rootCause = 'Cooling System Thermal Overheating';
+      action = 'Inspect Chassis Fans & Thermal Paste';
     } else if (payload.error_code === 'SENSOR_ERR') {
       rootCause = 'Sensor Transducer Calibration Drift';
       action = 'Recalibrate Analog Sensor Array';
     } else if (payload.error_code === 'POWER_FLUC') {
       rootCause = 'Power Supply Rail Voltage Fluctuation';
-      action = 'Check Power Filter Capacitor / PSU Board';
-    } else if (payload.days_since_maint > 180) {
-      rootCause = 'Overdue Preventive Maintenance';
-      action = 'Perform Full Annual Safety Inspection';
+      action = 'Inspect Power Filter Capacitors';
     }
 
     this.rootCauseEl.textContent = response.root_cause || rootCause;
@@ -1351,6 +1352,7 @@ class AutonomousLogxApp {
     this.liveParamTemp = document.getElementById('liveParamTemp');
     this.liveParamLoad = document.getElementById('liveParamLoad');
     this.liveParamVolt = document.getElementById('liveParamVolt');
+    this.payloadInspector = document.getElementById('payloadInspector');
 
     // Status
     this.connDot = document.getElementById('connDot');
@@ -1418,16 +1420,18 @@ class AutonomousLogxApp {
   }
 
   /**
-   * Generates a completely randomized, ML-aware telemetry payload
+   * Generates a randomized telemetry payload strictly matching the EXACT 11 REQUIRED ML INPUT FIELDS
    */
   generateRandomPayload() {
     // 1. Pick Device based on Scope
     const scope = this.deviceScope.value;
     let dev;
-    if (scope === 'fixed_dev1') {
-      dev = DEVICE_REGISTRY[0];
-    } else if (scope === 'fixed_dev5') {
-      dev = DEVICE_REGISTRY[1];
+    if (scope === 'fixed_dev25') {
+      dev = DEVICE_REGISTRY[0]; // DEV000025 Ventilator
+    } else if (scope === 'fixed_dev10') {
+      dev = DEVICE_REGISTRY[2]; // DEV000010 CT scanner
+    } else if (scope === 'fixed_dev1') {
+      dev = DEVICE_REGISTRY[5]; // DEV000001 Ventilator
     } else if (scope === 'random_icu') {
       const icuList = DEVICE_REGISTRY.filter(d => d.dept.includes('ICU'));
       dev = icuList[Math.floor(Math.random() * icuList.length)];
@@ -1443,73 +1447,45 @@ class AutonomousLogxApp {
     const isAnomaly = Math.random() < failProb;
 
     let errorCode = 'OK';
-    let battery = rng(85.0, 99.0);
-    let temp = rng(34.5, 37.8);
-    let load = rng(40.0, 75.0);
-    let volt = rng(22.5, 24.5);
-    let opHours = rng(200.0, 3000.0);
-    let humidity = rng(35.0, 65.0);
-    let cycles = rngi(50, 400);
-    let daysMaint = rngi(5, 90);
-    let err7d = rngi(0, 2);
+    let battery = rng(88.0, 99.0);
+    let temp = rng(34.8, 37.6);
+    let load = rng(45.0, 72.0);
+    let volt = rng(23.2, 24.5);
+    let opHours = rng(800.0, 3500.0);
 
     if (isAnomaly) {
       // Pick an anomaly archetype randomly to trigger ML models
-      const archetypes = [
-        'BAT_CRITICAL',  // Critical Battery
-        'BAT_WARN',      // Warning Battery
-        'TEMP_CRITICAL', // Thermal Overheating
-        'TEMP_WARN',     // Thermal Warning
-        'SENSOR_ERR',    // Sensor drift
-        'POWER_FLUC',    // Voltage drops
-        'SYS_RESET',     // MCU Reset
-        'CASCADE'        // Multi-failure crash
-      ];
+      const archetypes = ['BAT_CRITICAL', 'TEMP_CRITICAL', 'SENSOR_ERR', 'POWER_FLUC', 'SYS_RESET'];
       const archetype = archetypes[Math.floor(Math.random() * archetypes.length)];
 
       if (archetype === 'BAT_CRITICAL') {
         errorCode = 'BAT_CRITICAL';
         battery = rng(10.0, 22.0);
-        volt = rng(18.0, 22.0);
-        load = rng(70.0, 90.0);
-        cycles = rngi(800, 1200);
-        daysMaint = rngi(90, 250);
-      } else if (archetype === 'BAT_WARN') {
-        errorCode = 'BAT_WARN';
-        battery = rng(24.0, 35.0);
-        cycles = rngi(600, 900);
+        volt = rng(17.0, 20.5);
+        load = rng(75.0, 92.0);
+        opHours = rng(3800.0, 5800.0);
       } else if (archetype === 'TEMP_CRITICAL') {
         errorCode = 'TEMP_CRITICAL';
-        temp = rng(46.0, 58.0);
-        load = rng(85.0, 98.0);
-        humidity = rng(60.0, 85.0);
-      } else if (archetype === 'TEMP_WARN') {
-        errorCode = 'TEMP_WARN';
-        temp = rng(39.0, 43.5);
+        temp = rng(48.0, 58.0);
+        load = rng(88.0, 98.0);
+        volt = rng(19.0, 21.5);
+        opHours = rng(2500.0, 4800.0);
       } else if (archetype === 'SENSOR_ERR') {
         errorCode = 'SENSOR_ERR';
-        err7d = rngi(8, 25);
-        temp = rng(36.0, 42.0);
+        temp = rng(37.0, 43.0);
+        load = rng(65.0, 85.0);
       } else if (archetype === 'POWER_FLUC') {
         errorCode = 'POWER_FLUC';
-        volt = rng(14.0, 19.0);
+        volt = rng(14.0, 18.5);
         load = rng(80.0, 95.0);
-        err7d = rngi(5, 15);
       } else if (archetype === 'SYS_RESET') {
         errorCode = 'SYS_RESET';
         load = rng(92.0, 99.9);
         temp = rng(40.0, 47.0);
-      } else if (archetype === 'CASCADE') {
-        errorCode = 'BAT_CRITICAL';
-        battery = rng(8.0, 15.0);
-        temp = rng(48.0, 60.0);
-        load = rng(94.0, 99.0);
-        volt = rng(12.0, 16.5);
-        daysMaint = rngi(300, 600);
-        cycles = rngi(1100, 1500);
       }
     }
 
+    // STRICT 11 REQUIRED ML INPUT FIELDS ONLY
     const payload = {
       hospital_id: this.client.hospitalId,
       device_id: dev.id,
@@ -1521,11 +1497,7 @@ class AutonomousLogxApp {
       load_percent: load,
       error_code: errorCode,
       operating_hours: opHours,
-      voltage: volt,
-      humidity: humidity,
-      error_count_7d: err7d,
-      battery_cycles: cycles,
-      days_since_maint: daysMaint
+      voltage: volt
     };
 
     // Update Live UI Cards
@@ -1536,6 +1508,7 @@ class AutonomousLogxApp {
     this.liveParamTemp.innerHTML = `${temp}<span class="unit">°C</span>`;
     this.liveParamLoad.innerHTML = `${load}<span class="unit">%</span>`;
     this.liveParamVolt.innerHTML = `${volt}<span class="unit">V</span>`;
+    this.payloadInspector.textContent = JSON.stringify(payload, null, 2);
 
     return payload;
   }
@@ -1605,7 +1578,7 @@ class AutonomousLogxApp {
     this.connDot.className = 'status-dot streaming';
 
     const interval = parseInt(this.streamInterval.value, 10) || 3000;
-    this.logger.log(`Started autonomous mixed-parameter telemetry stream (every ${interval / 1000}s).`, 'sys');
+    this.logger.log(`Started autonomous random ML telemetry stream (every ${interval / 1000}s).`, 'sys');
 
     this.sendSingleStep();
 
