@@ -3,366 +3,1638 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AURA Telemetry Streamer | External Medical Equipment Log Generator</title>
+  <title>LOGx — AURA Autonomous Telemetry & ML Anomaly Streamer</title>
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-main: #050d1a;
+      --bg-card: rgba(255, 255, 255, 0.04);
+      --bg-card-hover: rgba(255, 255, 255, 0.07);
+      --bg-input: rgba(5, 13, 26, 0.75);
+      --bg-terminal: #030710;
+      
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-focus: #00d4ff;
+      --border-glow: rgba(0, 212, 255, 0.35);
+
+      --color-accent: #00d4ff;
+      --color-critical: #ff3b3b;
+      --color-high: #ff8f00;
+      --color-medium: #ffca28;
+      --color-low: #00e676;
+      
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+
+      --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-ui);
+      background: var(--bg-main);
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(0, 212, 255, 0.07) 0%, transparent 45%),
+        radial-gradient(circle at 85% 80%, rgba(255, 59, 59, 0.05) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(0, 230, 118, 0.03) 0%, transparent 50%);
+      background-attachment: fixed;
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    .app-wrapper {
+      max-width: 1680px;
+      margin: 0 auto;
+      padding: 16px 24px 32px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-height: 100vh;
+    }
+
+    /* CRITICAL / HIGH SLIDE-DOWN ALERT BANNER */
+    #alertBanner {
+      display: none;
+      background: rgba(255, 59, 59, 0.16);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 59, 59, 0.4);
+      border-left: 6px solid var(--color-critical);
+      border-radius: var(--radius-md);
+      padding: 14px 20px;
+      box-shadow: 0 8px 32px rgba(255, 59, 59, 0.25);
+      animation: slideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #alertBanner.high-alert {
+      background: rgba(255, 143, 0, 0.16);
+      border-color: rgba(255, 143, 0, 0.4);
+      border-left-color: var(--color-high);
+      box-shadow: 0 8px 32px rgba(255, 143, 0, 0.2);
+    }
+    @keyframes slideDown {
+      from { transform: translateY(-30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .banner-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .banner-content {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .banner-icon {
+      font-size: 1.5rem;
+      animation: pulseAlert 1.2s infinite;
+    }
+    .banner-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      color: #fff;
+    }
+    .banner-desc {
+      font-size: 0.82rem;
+      color: var(--text-primary);
+      margin-top: 2px;
+    }
+    .banner-action-link {
+      font-size: 0.8rem;
+      color: var(--color-accent);
+      text-decoration: none;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+    .banner-dismiss {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--border-subtle);
+      color: #fff;
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .banner-dismiss:hover { background: rgba(255, 255, 255, 0.2); }
+
+    /* HEADER */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 12px 20px;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .brand-logo {
+      font-size: 1.75rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      color: #fff;
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+    .brand-logo span {
+      color: var(--color-accent);
+      text-shadow: 0 0 16px rgba(0, 212, 255, 0.6);
+    }
+    .brand-tagline {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+      border-left: 1px solid var(--border-subtle);
+      padding-left: 14px;
+      line-height: 1.3;
+    }
+
+    /* CENTER ECG ANIMATION */
+    .ecg-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border-subtle);
+      padding: 4px 14px;
+      border-radius: 30px;
+    }
+    .ecg-svg {
+      width: 140px;
+      height: 32px;
+      overflow: visible;
+    }
+    .ecg-path {
+      stroke: var(--color-accent);
+      stroke-width: 2;
+      fill: none;
+      stroke-dasharray: 200;
+      stroke-dashoffset: 0;
+      transition: stroke 0.3s;
+    }
+    .ecg-active .ecg-path {
+      animation: ecgFlow 2s linear infinite;
+    }
+    @keyframes ecgFlow {
+      from { stroke-dashoffset: 400; }
+      to { stroke-dashoffset: 0; }
+    }
+    .ecg-text {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    /* HEADER RIGHT STATS */
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .conn-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      font-weight: 600;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border-subtle);
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+    }
+    .status-dot.connected {
+      background: var(--color-low);
+      box-shadow: 0 0 10px var(--color-low);
+    }
+    .status-dot.streaming {
+      background: var(--color-accent);
+      box-shadow: 0 0 12px var(--color-accent);
+      animation: pulseAlert 1s infinite alternate;
+    }
+    .status-dot.disconnected {
+      background: var(--color-critical);
+      box-shadow: 0 0 8px var(--color-critical);
+    }
+
+    .stream-counter-badge {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+    }
+    .stream-counter-badge strong { color: #fff; }
+
+    /* ==========================================================================
+       MAIN GRID LAYOUT
+       ========================================================================== */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 560px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    /* GLASS CARDS */
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 16px 18px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .card-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: -0.2px;
+    }
+    .card-title svg {
+      width: 16px;
+      height: 16px;
+      color: var(--color-accent);
+    }
+
+    /* FORM CONTROLS */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 10px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .col-3 { grid-column: span 3; }
+    .col-4 { grid-column: span 4; }
+    .col-5 { grid-column: span 5; }
+    .col-6 { grid-column: span 6; }
+    .col-7 { grid-column: span 7; }
+    .col-8 { grid-column: span 8; }
+    .col-12 { grid-column: span 12; }
+
+    label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    input[type="text"], input[type="password"], input[type="number"], select {
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      color: var(--text-primary);
+      font-family: var(--font-ui);
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input:focus, select:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 2px var(--border-glow);
+    }
+    select option { background: #050d1a; color: #fff; }
+
+    /* BUTTONS */
+    button {
+      font-family: var(--font-ui);
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 0.75rem;
+    }
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+    }
+    .btn-ghost:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #0099cc 0%, #00d4ff 100%);
+      color: #030a16;
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(0, 212, 255, 0.4);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 6px 20px rgba(0, 212, 255, 0.6);
+      transform: translateY(-1px);
+    }
+    .btn-warning {
+      background: linear-gradient(135deg, #ff8f00 0%, #ffb300 100%);
+      color: #000;
+      font-weight: 700;
+    }
+    .btn-danger {
+      background: linear-gradient(135deg, #d32f2f 0%, #ff3b3b 100%);
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(255, 59, 59, 0.4);
+    }
+    .btn-danger:hover {
+      box-shadow: 0 6px 20px rgba(255, 59, 59, 0.6);
+      transform: translateY(-1px);
+    }
+
+    .server-status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border-subtle);
+      font-size: 0.74rem;
+      font-family: var(--font-mono);
+    }
+    .endpoint-code {
+      color: var(--color-accent);
+      background: rgba(0, 0, 0, 0.4);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* RANDOMIZED PARAMETER LIVE RADAR GAUGES */
+    .random-param-display {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 12px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      margin-top: 10px;
+    }
+    .live-metric-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .live-metric-title {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .live-metric-val {
+      font-family: var(--font-mono);
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .live-metric-val .unit {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-left: 2px;
+    }
+
+    /* STREAM ACTIONS */
+    .stream-actions-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    /* RIGHT COLUMN */
+    .right-column {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .output-split-grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 16px;
+    }
+
+    /* LIVE TERMINAL CONSOLE */
+    .terminal-card {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-terminal);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      min-height: 520px;
+    }
+    .terminal-top {
+      background: #080f1e;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .term-dots {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .term-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .term-dot.r { background: var(--color-critical); }
+    .term-dot.y { background: var(--color-high); }
+    .term-dot.g { background: var(--color-low); }
+    .term-title {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-left: 6px;
+    }
+    .term-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .auto-scroll-label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+    .terminal-screen {
+      flex: 1;
+      padding: 12px 14px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      line-height: 1.55;
+      overflow-y: auto;
+      max-height: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .log-line {
+      display: flex;
+      gap: 8px;
+      word-break: break-all;
+    }
+    .log-time { color: var(--text-muted); flex-shrink: 0; }
+    .log-low { color: #86efac; }
+    .log-med { color: #fde047; }
+    .log-high { color: #fdba74; }
+    .log-crit {
+      color: #fca5a5;
+      font-weight: 700;
+      background: rgba(255, 59, 59, 0.12);
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    .log-sys { color: var(--color-accent); }
+    .log-err { color: #f87171; }
+
+    /* ML RESPONSE CARD */
+    .ml-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .ml-badge-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .risk-badge {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      font-weight: 800;
+      padding: 4px 14px;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .risk-badge.LOW {
+      background: rgba(0, 230, 118, 0.15);
+      color: var(--color-low);
+      border: 1px solid rgba(0, 230, 118, 0.35);
+    }
+    .risk-badge.MEDIUM {
+      background: rgba(255, 202, 40, 0.15);
+      color: var(--color-medium);
+      border: 1px solid rgba(255, 202, 40, 0.35);
+    }
+    .risk-badge.HIGH {
+      background: rgba(255, 143, 0, 0.18);
+      color: var(--color-high);
+      border: 1px solid rgba(255, 143, 0, 0.45);
+      box-shadow: 0 0 12px rgba(255, 143, 0, 0.35);
+    }
+    .risk-badge.CRITICAL {
+      background: rgba(255, 59, 59, 0.22);
+      color: var(--color-critical);
+      border: 1px solid var(--color-critical);
+      box-shadow: 0 0 16px rgba(255, 59, 59, 0.5);
+      animation: pulseAlert 1.2s infinite alternate;
+    }
+    @keyframes pulseAlert {
+      0% { transform: scale(0.97); opacity: 0.85; }
+      100% { transform: scale(1.03); opacity: 1; }
+    }
+
+    /* METRIC BARS */
+    .metric-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .metric-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.72rem;
+    }
+    .metric-track {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .metric-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.4s ease, background 0.4s ease;
+    }
+    .fill-health { background: var(--color-low); }
+    .fill-anomaly { background: var(--color-accent); }
+
+    /* SPARKLINE */
+    .sparkline-box {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .sparkline-title {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+    .sparkline-svg {
+      width: 100%;
+      height: 38px;
+    }
+
+    /* COUNTERS ROW */
+    .kpi-counters-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+    }
+    .kpi-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .kpi-title {
+      font-size: 0.62rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+    .kpi-val {
+      font-family: var(--font-mono);
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #fff;
+    }
+    .kpi-val.crit { color: var(--color-critical); }
+    .kpi-val.high { color: var(--color-high); }
+    .kpi-val.med { color: var(--color-medium); }
+    .kpi-val.low { color: var(--color-low); }
+
+    .autonomous-badge {
+      background: rgba(0, 212, 255, 0.12);
+      border: 1px solid rgba(0, 212, 255, 0.3);
+      color: var(--color-accent);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+  </style>
 </head>
 <body>
-  <div class="app-container">
-    <!-- Top Navigation Header -->
-    <header class="navbar">
-      <div class="brand-section">
-        <div class="logo-badge">
-          <span class="pulse-dot"></span>
-          <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-          </svg>
-        </div>
-        <div class="brand-text">
-          <div class="brand-title">AURA <span>LOGx SIMULATOR</span></div>
-          <div class="brand-subtitle">External Medical Equipment Telemetry Streamer</div>
+
+<div class="app-wrapper">
+  <!-- SLIDE-DOWN ALERT BANNER (CRITICAL / HIGH) -->
+  <div id="alertBanner">
+    <div class="banner-inner">
+      <div class="banner-content">
+        <div class="banner-icon" id="bannerIcon">🚨</div>
+        <div>
+          <div class="banner-title" id="bannerTitle">[CRITICAL ALERT RECEIVED] DEV000001 — Urgent Maintenance Required</div>
+          <div class="banner-desc">
+            <span id="bannerMetrics">Health: 14.2% | Anomaly: 75.0</span> &bull; 
+            <strong>Action:</strong> <span id="bannerAction">Schedule Immediate Maintenance</span>
+            <a href="http://127.0.0.1:8000" target="_blank" class="banner-action-link">↗ Open AURA Dashboard</a>
+          </div>
         </div>
       </div>
-
-      <div class="header-stats">
-        <div class="header-stat-box">
-          <span class="stat-label">STATUS</span>
-          <div class="stat-value-badge" id="systemStatusBadge">
-            <span class="status-indicator-dot idle"></span>
-            <span id="systemStatusText">STANDBY</span>
-          </div>
-        </div>
-        <div class="header-stat-box">
-          <span class="stat-label">PACKETS TRANSMITTED</span>
-          <span class="stat-number" id="statSent">0</span>
-        </div>
-        <div class="header-stat-box">
-          <span class="stat-label">INGESTION ACK (200)</span>
-          <span class="stat-number success" id="statSuccess">0</span>
-        </div>
-        <div class="header-stat-box">
-          <span class="stat-label">ANOMALIES DETECTED</span>
-          <span class="stat-number alert" id="statAnomalies">0</span>
-        </div>
-      </div>
-    </header>
-
-    <!-- Main Grid Content -->
-    <main class="main-layout">
-      <!-- Left Column: Controls & Configuration -->
-      <section class="config-column">
-        <!-- Target Server Settings -->
-        <div class="panel glass-panel">
-          <div class="panel-header">
-            <div class="panel-title">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
-              Target AURA Server Target
-            </div>
-            <button class="btn-sm btn-ghost" id="btnTestPing" title="Test Connection">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-              Ping Server
-            </button>
-          </div>
-          
-          <div class="form-grid">
-            <div class="form-group span-8">
-              <label for="serverIp">Server Host / IP</label>
-              <input type="text" id="serverIp" value="127.0.0.1" placeholder="e.g. 192.168.1.100 or localhost">
-            </div>
-            <div class="form-group span-4">
-              <label for="serverPort">Port</label>
-              <input type="text" id="serverPort" value="8000" placeholder="8000">
-            </div>
-            <div class="form-group span-6">
-              <label for="hospitalId">Hospital ID</label>
-              <input type="text" id="hospitalId" value="demo-hospital" placeholder="demo-hospital">
-            </div>
-            <div class="form-group span-6">
-              <label for="apiKey">Ingest API Key</label>
-              <input type="text" id="apiKey" value="aura_live_ingest_key_2026">
-            </div>
-            <div class="form-group span-12 endpoint-preview">
-              <span class="preview-tag">TARGET ENDPOINT:</span>
-              <code id="endpointPreview">http://127.0.0.1:8000/api/v1/ingest/telemetry</code>
-            </div>
-          </div>
-        </div>
-
-        <!-- Device & Simulation Mode -->
-        <div class="panel glass-panel">
-          <div class="panel-header">
-            <div class="panel-title">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
-              Device Telemetry Configuration
-            </div>
-            <div class="mode-toggle">
-              <button class="toggle-btn active" id="btnModeSingle">Single Device</button>
-              <button class="toggle-btn" id="btnModeFleet">Fleet Simulator (5 Devices)</button>
-            </div>
-          </div>
-
-          <div id="singleDeviceControls" class="form-grid">
-            <div class="form-group span-4">
-              <label for="deviceId">Device ID</label>
-              <input type="text" id="deviceId" value="DEV000001">
-            </div>
-            <div class="form-group span-4">
-              <label for="deviceType">Device Type</label>
-              <select id="deviceType">
-                <option value="Ventilator">Ventilator</option>
-                <option value="Patient monitor">Patient monitor</option>
-                <option value="CT scanner">CT scanner</option>
-                <option value="MRI scanner">MRI scanner</option>
-                <option value="Infusion pump">Infusion pump</option>
-                <option value="ECG machine">ECG machine</option>
-                <option value="Dialysis unit">Dialysis unit</option>
-                <option value="Defibrillator">Defibrillator</option>
-              </select>
-            </div>
-            <div class="form-group span-4">
-              <label for="department">Department</label>
-              <select id="department">
-                <option value="Intensive Care Unit (ICU)">Intensive Care Unit (ICU)</option>
-                <option value="Radiology Department">Radiology Department</option>
-                <option value="Operating Room (OR)">Operating Room (OR)</option>
-                <option value="Clinical Laboratory">Clinical Laboratory</option>
-                <option value="Emergency Ward">Emergency Ward</option>
-                <option value="General Ward">General Ward</option>
-                <option value="Cardiology Lab">Cardiology Lab</option>
-              </select>
-            </div>
-          </div>
-
-          <div id="fleetDeviceList" class="fleet-list" style="display:none;">
-            <div class="fleet-item active" data-dev="DEV000001">
-              <span class="fleet-badge">ICU</span>
-              <div class="fleet-info"><strong>DEV000001</strong> - Ventilator</div>
-              <span class="fleet-status ok">ACTIVE</span>
-            </div>
-            <div class="fleet-item" data-dev="DEV000002">
-              <span class="fleet-badge">ICU</span>
-              <div class="fleet-info"><strong>DEV000002</strong> - Patient monitor</div>
-              <span class="fleet-status ok">ACTIVE</span>
-            </div>
-            <div class="fleet-item" data-dev="DEV000003">
-              <span class="fleet-badge">RAD</span>
-              <div class="fleet-info"><strong>DEV000003</strong> - CT scanner</div>
-              <span class="fleet-status ok">ACTIVE</span>
-            </div>
-            <div class="fleet-item" data-dev="DEV000004">
-              <span class="fleet-badge">WARD</span>
-              <div class="fleet-info"><strong>DEV000004</strong> - Infusion pump</div>
-              <span class="fleet-status ok">ACTIVE</span>
-            </div>
-            <div class="fleet-item" data-dev="DEV000005">
-              <span class="fleet-badge">LAB</span>
-              <div class="fleet-info"><strong>DEV000005</strong> - ECG machine</div>
-              <span class="fleet-status ok">ACTIVE</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Failure Simulation Injector -->
-        <div class="panel glass-panel highlight-panel">
-          <div class="panel-header">
-            <div class="panel-title">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon warning-icon"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-              Failure Simulation Injector
-            </div>
-            <span class="badge-scenario" id="currentScenarioBadge">ACTIVE: NORMAL (OK)</span>
-          </div>
-
-          <div class="scenario-selector-grid">
-            <button class="scenario-btn active" data-scenario="OK">
-              <div class="scenario-name">Normal Operation</div>
-              <div class="scenario-desc">Stable sensors, battery >85%, temp ~36.8°C</div>
-            </button>
-            <button class="scenario-btn warning" data-scenario="BAT_CRITICAL">
-              <div class="scenario-name">Battery Degradation</div>
-              <div class="scenario-desc">Drops battery to 15-22% & code BAT_CRITICAL</div>
-            </button>
-            <button class="scenario-btn danger" data-scenario="TEMP_CRITICAL">
-              <div class="scenario-name">Thermal Overheating</div>
-              <div class="scenario-desc">Ramps temperature to 45-52°C & TEMP_CRITICAL</div>
-            </button>
-            <button class="scenario-btn info" data-scenario="SENSOR_ERR">
-              <div class="scenario-name">Sensor Drift / Error</div>
-              <div class="scenario-desc">Emits calibration drift & SENSOR_ERR code</div>
-            </button>
-            <button class="scenario-btn alert" data-scenario="POWER_FLUC">
-              <div class="scenario-name">Power Fluctuations</div>
-              <div class="scenario-desc">Voltage drops & code POWER_FLUC</div>
-            </button>
-            <button class="scenario-btn alert" data-scenario="SYS_RESET">
-              <div class="scenario-name">Microcontroller Reset</div>
-              <div class="scenario-desc">Simulates system freeze & SYS_RESET event</div>
-            </button>
-          </div>
-
-          <!-- Quick Failure Burst Buttons -->
-          <div class="quick-inject-bar">
-            <span class="quick-inject-label">QUICK BURST INJECT:</span>
-            <button class="btn-pill btn-burst" onclick="app.quickInject('BAT_CRITICAL')">⚡ Inject Battery Failure</button>
-            <button class="btn-pill btn-burst" onclick="app.quickInject('TEMP_CRITICAL')">🔥 Inject Overheat Alert</button>
-            <button class="btn-pill btn-burst" onclick="app.quickInject('SENSOR_ERR')">⚠️ Inject Sensor Fault</button>
-          </div>
-        </div>
-
-        <!-- Stream Engine Controls -->
-        <div class="panel glass-panel">
-          <div class="panel-header">
-            <div class="panel-title">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-              Stream Engine & Transmission Controls
-            </div>
-            <div class="rate-select-group">
-              <label for="intervalSelect">Interval:</label>
-              <select id="intervalSelect">
-                <option value="500">0.5 sec (Fast)</option>
-                <option value="1000">1.0 sec</option>
-                <option value="2000">2.0 sec</option>
-                <option value="3000" selected>3.0 sec (Standard)</option>
-                <option value="5000">5.0 sec</option>
-                <option value="10000">10.0 sec</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="control-actions-grid">
-            <button class="btn-primary btn-lg" id="btnStartStream">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-              Start Log Stream
-            </button>
-            <button class="btn-warning btn-lg" id="btnPauseStream" style="display:none;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
-              Pause Stream
-            </button>
-            <button class="btn-danger btn-lg" id="btnStopStream" style="display:none;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
-              Stop Stream
-            </button>
-            <button class="btn-secondary" id="btnStepOnce">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
-              Send Single Log
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <!-- Right Column: Visualizer & Live Terminal Console -->
-      <section class="console-column">
-        <!-- Live Device Telemetry Telemetrics Gauges -->
-        <div class="panel glass-panel">
-          <div class="panel-header">
-            <div class="panel-title">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>
-              Simulated Telemetry Metrics & Waveform
-            </div>
-            <div class="telemetry-chip" id="lastActiveDeviceChip">DEV000001 (Ventilator)</div>
-          </div>
-
-          <div class="gauges-container">
-            <div class="gauge-card">
-              <div class="gauge-title">Battery Health</div>
-              <div class="gauge-val" id="gaugeBattery">94.2<span class="unit">%</span></div>
-              <div class="gauge-bar-track">
-                <div class="gauge-bar-fill battery-color" id="barBattery" style="width: 94.2%;"></div>
-              </div>
-            </div>
-
-            <div class="gauge-card">
-              <div class="gauge-title">Temperature</div>
-              <div class="gauge-val" id="gaugeTemp">36.7<span class="unit">°C</span></div>
-              <div class="gauge-bar-track">
-                <div class="gauge-bar-fill temp-color" id="barTemp" style="width: 45%;"></div>
-              </div>
-            </div>
-
-            <div class="gauge-card">
-              <div class="gauge-title">Workload Factor</div>
-              <div class="gauge-val" id="gaugeLoad">62.0<span class="unit">%</span></div>
-              <div class="gauge-bar-track">
-                <div class="gauge-bar-fill load-color" id="barLoad" style="width: 62%;"></div>
-              </div>
-            </div>
-
-            <div class="gauge-card">
-              <div class="gauge-title">Voltage Supply</div>
-              <div class="gauge-val" id="gaugeVoltage">24.1<span class="unit">V</span></div>
-              <div class="gauge-bar-track">
-                <div class="gauge-bar-fill voltage-color" id="barVoltage" style="width: 80%;"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Oscilloscope Waveform Canvas -->
-          <div class="waveform-container">
-            <div class="waveform-header">
-              <span class="waveform-tag">REALTIME EQUIPMENT SIGNAL WAVEFORM</span>
-              <span class="waveform-tag frequency" id="signalPulseRate">RATE: 68 BPM / NORMAL</span>
-            </div>
-            <canvas id="waveformCanvas" width="800" height="90"></canvas>
-          </div>
-        </div>
-
-        <!-- Terminal Console Panel -->
-        <div class="panel glass-panel terminal-panel">
-          <div class="panel-header terminal-topbar">
-            <div class="terminal-dots">
-              <span class="terminal-dot red"></span>
-              <span class="terminal-dot yellow"></span>
-              <span class="terminal-dot green"></span>
-              <span class="terminal-title">LIVE TELEMETRY STREAM CONSOLE (HTTP / REST)</span>
-            </div>
-            <div class="terminal-actions">
-              <label class="auto-scroll-toggle">
-                <input type="checkbox" id="autoScrollCheck" checked>
-                <span>Auto-scroll</span>
-              </label>
-              <button class="btn-xs" id="btnClearConsole">Clear</button>
-              <button class="btn-xs" id="btnExportLogs">Export JSON</button>
-            </div>
-          </div>
-
-          <div class="terminal-body" id="terminalConsole">
-            <div class="terminal-entry system-msg">
-              <span class="time">[INIT]</span>
-              <span class="msg">AURA External Medical Equipment Log Generator v2.0 initialized. Ready to stream telemetry logs.</span>
-            </div>
-            <div class="terminal-entry guide-msg">
-              <span class="time">[INFO]</span>
-              <span class="msg">Press <strong>Start Log Stream</strong> to begin broadcasting live simulated device telemetry to Central AURA server.</span>
-            </div>
-          </div>
-
-          <!-- Terminal Status Bar -->
-          <div class="terminal-footer">
-            <div class="terminal-stat-item">
-              <span>LATENCY:</span>
-              <strong id="footerLatency">-- ms</strong>
-            </div>
-            <div class="terminal-stat-item">
-              <span>LAST STATUS:</span>
-              <strong id="footerLastStatus" class="tag-neutral">IDLE</strong>
-            </div>
-            <div class="terminal-stat-item">
-              <span>ACTIVE ERROR CODE:</span>
-              <strong id="footerErrorCode" class="tag-ok">OK</strong>
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <!-- Footer -->
-    <footer class="app-footer">
-      <div>AURA Medical Device Reliability Intelligence Platform &bull; External Log Generator Client</div>
-      <div>Compatible with AURA API v1 Ingestion Specification</div>
-    </footer>
+      <button class="banner-dismiss" onclick="auraApp.responseCard.dismissBanner()">Dismiss [ESC]</button>
+    </div>
   </div>
 
-  <script src="app.js"></script>
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-left">
+      <div class="brand-logo">LOG<span>x</span></div>
+      <div class="brand-tagline">Autonomous Medical Equipment<br>Random Telemetry & ML Streamer</div>
+    </div>
+
+    <!-- Animated ECG Heartbeat Waveform -->
+    <div class="ecg-container" id="ecgContainer">
+      <svg class="ecg-svg" viewBox="0 0 140 32">
+        <path class="ecg-path" d="M 0 16 L 20 16 L 25 8 L 30 24 L 35 4 L 40 28 L 45 16 L 70 16 L 75 10 L 80 22 L 85 16 L 140 16"></path>
+      </svg>
+      <span class="ecg-text" id="ecgStatusText">STANDBY</span>
+    </div>
+
+    <div class="header-right">
+      <div class="conn-pill" id="connPill">
+        <span class="status-dot disconnected" id="connDot"></span>
+        <span id="connText">127.0.0.1:8000</span>
+      </div>
+      <div class="stream-counter-badge">
+        <strong id="headerLogsSent">0</strong> logs transmitted
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN GRID -->
+  <main class="main-grid">
+    
+    <!-- LEFT PANEL: CONTROLS & AUTONOMOUS ENGINE -->
+    <div class="left-column" style="display: flex; flex-direction: column; gap: 14px;">
+      
+      <!-- SERVER CONNECTION -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+            Target Server Connection
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn-sm btn-ghost" id="btnCopyUrl" title="Copy Ingest URL">Copy URL</button>
+            <button class="btn-sm btn-ghost" id="btnTestConn">Test Ping</button>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group col-4">
+            <label for="serverHost">Server Host</label>
+            <input type="text" id="serverHost" value="127.0.0.1">
+          </div>
+          <div class="form-group col-3">
+            <label for="serverPort">Port</label>
+            <input type="text" id="serverPort" value="8000">
+          </div>
+          <div class="form-group col-5">
+            <label for="hospitalId">Hospital ID</label>
+            <input type="text" id="hospitalId" value="demo-hospital">
+          </div>
+          <div class="form-group col-12">
+            <label for="apiKey">Ingest API Key</label>
+            <input type="password" id="apiKey" value="aura_live_ingest_key_2026">
+          </div>
+        </div>
+
+        <div class="server-status-row">
+          <div>ENDPOINT: <code class="endpoint-code" id="endpointPreview">http://127.0.0.1:8000/api/v1/ingest/telemetry</code></div>
+          <div id="connResultLabel" style="color: var(--text-muted);">Ready</div>
+        </div>
+      </div>
+
+      <!-- AUTONOMOUS RANDOM GENERATOR SETTINGS -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            Autonomous Random Stream Settings
+          </div>
+          <div class="autonomous-badge">⚡ AUTO-RANDOM MIXED ML MODE</div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group col-6">
+            <label for="deviceScope">Device Selection Mode</label>
+            <select id="deviceScope">
+              <option value="random_fleet" selected>Random Hospital Fleet (All 12 Devices)</option>
+              <option value="random_icu">Random ICU Devices (Ventilators, Monitors, Defibs)</option>
+              <option value="random_rad">Random Radiology (CT, MRI, X-ray)</option>
+              <option value="fixed_dev1">Fixed: DEV000001 (Ventilator)</option>
+              <option value="fixed_dev5">Fixed: DEV000005 (Patient monitor)</option>
+            </select>
+          </div>
+          <div class="form-group col-6">
+            <label for="streamInterval">Stream Interval</label>
+            <select id="streamInterval">
+              <option value="500">0.5 second (High Speed)</option>
+              <option value="1000">1.0 second (Fast Stream)</option>
+              <option value="2000">2.0 seconds</option>
+              <option value="3000" selected>3.0 seconds (Standard)</option>
+              <option value="5000">5.0 seconds</option>
+            </select>
+          </div>
+          <div class="form-group col-12">
+            <label for="failureProbability">Failure Anomaly Injection Probability</label>
+            <select id="failureProbability">
+              <option value="0.10">Low Anomaly Rate (~10% Critical/Warning, 90% Normal OK)</option>
+              <option value="0.25" selected>Realistic Hospital Mixed Rate (~25% Critical/High/Warn, 75% OK)</option>
+              <option value="0.50">Stress Test (~50% Failures & Overheats, 50% OK)</option>
+              <option value="0.80">Extreme Failure Storm (~80% Critical/Overheat/Sensor Faults)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- REAL-TIME GENERATED PARAMETER DISPLAY -->
+        <div style="margin-top: 14px;">
+          <label>Live Random Telemetry Parameters (Last Generated)</label>
+          <div class="random-param-display">
+            <div class="live-metric-card">
+              <span class="live-metric-title">Device & Dept</span>
+              <span class="live-metric-val" id="liveParamDev" style="font-size: 0.9rem;">DEV000001 <span class="unit">ICU</span></span>
+            </div>
+            <div class="live-metric-card">
+              <span class="live-metric-title">ML Error Code</span>
+              <span class="live-metric-val" id="liveParamCode" style="color: var(--color-low);">OK</span>
+            </div>
+            <div class="live-metric-card">
+              <span class="live-metric-title">Battery Health</span>
+              <span class="live-metric-val" id="liveParamBat">94.2<span class="unit">%</span></span>
+            </div>
+            <div class="live-metric-card">
+              <span class="live-metric-title">Component Temp</span>
+              <span class="live-metric-val" id="liveParamTemp">36.8<span class="unit">°C</span></span>
+            </div>
+            <div class="live-metric-card">
+              <span class="live-metric-title">Workload Load</span>
+              <span class="live-metric-val" id="liveParamLoad">58.0<span class="unit">%</span></span>
+            </div>
+            <div class="live-metric-card">
+              <span class="live-metric-title">Supply Voltage</span>
+              <span class="live-metric-val" id="liveParamVolt">24.1<span class="unit">V</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- STREAM CONTROLS -->
+        <div class="stream-actions-grid">
+          <button class="btn-primary" id="btnToggleStream" style="padding: 14px; font-size: 1rem;">
+            ▶ START AUTOMATIC STREAM
+          </button>
+          <button class="btn-ghost" id="btnSendSingle" style="padding: 14px;">
+            Send 1 Random Log
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT PANEL: LIVE CONSOLE & ML PREDICTION CARD -->
+    <div class="right-column">
+      
+      <div class="output-split-grid">
+        <!-- LIVE TERMINAL CONSOLE -->
+        <div class="terminal-card">
+          <div class="terminal-top">
+            <div class="term-dots">
+              <span class="term-dot r"></span>
+              <span class="term-dot y"></span>
+              <span class="term-dot g"></span>
+              <span class="term-title">LIVE TELEMETRY STREAM CONSOLE (HTTP / REST)</span>
+            </div>
+            <div class="term-actions">
+              <label class="auto-scroll-label">
+                <input type="checkbox" id="termAutoScroll" checked>
+                <span>Auto-scroll</span>
+              </label>
+              <button class="btn-sm btn-ghost" id="btnTermClear" style="padding: 2px 8px; font-size: 0.68rem;">Clear</button>
+              <button class="btn-sm btn-ghost" id="btnTermExport" style="padding: 2px 8px; font-size: 0.68rem;">Export JSON</button>
+            </div>
+          </div>
+
+          <div class="terminal-screen" id="terminalScreen">
+            <div class="log-line log-sys">
+              <span class="log-time">[INIT]</span>
+              <span>Autonomous Random Telemetry Generator initialized. Click <strong>Start Automatic Stream</strong> to begin transmitting live mixed ML logs.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- AURA ML PREDICTION CARD -->
+        <div class="ml-card">
+          <div class="card-title" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            AURA ML Prediction — Last Response
+          </div>
+
+          <div class="ml-badge-container">
+            <div>
+              <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Device Target</div>
+              <div style="font-family: var(--font-mono); font-size: 1.05rem; font-weight: 700; color: #fff;" id="mlDevId">DEV000001</div>
+              <div style="font-size: 0.72rem; color: var(--text-secondary);" id="mlDevType">Ventilator</div>
+            </div>
+            <div id="mlRiskBadge" class="risk-badge LOW">LOW</div>
+          </div>
+
+          <!-- Overall Health Metric Bar -->
+          <div class="metric-row">
+            <div class="metric-labels">
+              <span style="color: var(--text-secondary);">Overall Health Score:</span>
+              <strong style="color: #fff; font-family: var(--font-mono);" id="mlHealthVal">95.4 %</strong>
+            </div>
+            <div class="metric-track">
+              <div class="metric-fill fill-health" id="mlHealthBar" style="width: 95.4%;"></div>
+            </div>
+          </div>
+
+          <!-- Anomaly Score Metric Bar -->
+          <div class="metric-row">
+            <div class="metric-labels">
+              <span style="color: var(--text-secondary);">Anomaly Score:</span>
+              <strong style="color: var(--color-accent); font-family: var(--font-mono);" id="mlAnomalyVal">12.0</strong>
+            </div>
+            <div class="metric-track">
+              <div class="metric-fill fill-anomaly" id="mlAnomalyBar" style="width: 12%;"></div>
+            </div>
+          </div>
+
+          <!-- Failure Probability & Action -->
+          <div style="background: rgba(0, 0, 0, 0.3); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); font-size: 0.75rem; display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-secondary);">Root Cause:</span>
+              <strong style="color: #fff;" id="mlRootCause">None (Normal Operation)</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-secondary);">Recommended Action:</span>
+              <strong style="color: var(--color-accent);" id="mlAction">Routine Monitoring</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-secondary);">Latency:</span>
+              <strong style="color: var(--text-muted); font-family: var(--font-mono);" id="mlLatency">-- ms</strong>
+            </div>
+          </div>
+
+          <!-- Anomaly History Sparkline -->
+          <div class="sparkline-box">
+            <div class="sparkline-title">ANOMALY HISTORY (LAST 10 LOGS)</div>
+            <svg class="sparkline-svg" id="sparklineSvg" viewBox="0 0 180 38">
+              <line x1="0" y1="19" x2="180" y2="19" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3"/>
+              <polyline id="sparklinePoly" fill="none" stroke="#00d4ff" stroke-width="2" points="0,30 20,28 40,29 60,31 80,28 100,30 120,27 140,29 160,30 180,28"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI COUNTERS ROW -->
+      <div class="kpi-counters-row">
+        <div class="kpi-box">
+          <span class="kpi-title">TOTAL TRANSMITTED</span>
+          <span class="kpi-val" id="kpiTotal">0</span>
+        </div>
+        <div class="kpi-box">
+          <span class="kpi-title">CRITICAL ALERTS</span>
+          <span class="kpi-val crit" id="kpiCritical">0</span>
+        </div>
+        <div class="kpi-box">
+          <span class="kpi-title">HIGH RISKS</span>
+          <span class="kpi-val high" id="kpiHigh">0</span>
+        </div>
+        <div class="kpi-box">
+          <span class="kpi-title">MEDIUM RISKS</span>
+          <span class="kpi-val med" id="kpiMedium">0</span>
+        </div>
+        <div class="kpi-box">
+          <span class="kpi-title">LOW / STABLE</span>
+          <span class="kpi-val low" id="kpiLow">0</span>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+<!-- ==========================================================================
+     CORE JAVASCRIPT ENGINE (AUTONOMOUS RANDOM TELEMETRY GENERATOR)
+     ========================================================================== -->
+<script>
+/**
+ * Standard Hospital Device Catalog
+ */
+const DEVICE_REGISTRY = [
+  { id: 'DEV000001', type: 'Ventilator', dept: 'Intensive Care Unit (ICU)' },
+  { id: 'DEV000005', type: 'Patient monitor', dept: 'Intensive Care Unit (ICU)' },
+  { id: 'DEV000010', type: 'CT scanner', dept: 'Radiology Department' },
+  { id: 'DEV000015', type: 'MRI scanner', dept: 'Radiology Department' },
+  { id: 'DEV000020', type: 'Blood analyzer', dept: 'Clinical Laboratory' },
+  { id: 'DEV000025', type: 'Infusion pump', dept: 'General Ward' },
+  { id: 'DEV000030', type: 'Defibrillator', dept: 'Intensive Care Unit (ICU)' },
+  { id: 'DEV000035', type: 'ECG machine', dept: 'General Ward' },
+  { id: 'DEV000040', type: 'Ultrasound machine', dept: 'Radiology Department' },
+  { id: 'DEV000045', type: 'PCR machine', dept: 'Clinical Laboratory' },
+  { id: 'DEV000050', type: 'Anesthesia machine', dept: 'Intensive Care Unit (ICU)' },
+  { id: 'DEV000055', type: 'X-ray machine', dept: 'Radiology Department' }
+];
+
+function rng(lo, hi) { return +(lo + Math.random() * (hi - lo)).toFixed(1); }
+function rngi(lo, hi){ return Math.floor(lo + Math.random() * (hi - lo)); }
+
+/**
+ * AURA Client
+ */
+class AuraClient {
+  constructor(host, port, hospitalId, apiKey) {
+    this.host = host || '127.0.0.1';
+    this.port = port || '8000';
+    this.hospitalId = hospitalId || 'demo-hospital';
+    this.apiKey = apiKey || 'aura_live_ingest_key_2026';
+  }
+
+  getEndpoint() {
+    return `http://${this.host}:${this.port}/api/v1/ingest/telemetry`;
+  }
+
+  buildHeaders() {
+    return {
+      'Content-Type': 'application/json',
+      'X-API-Key': this.apiKey,
+      'Hospital-ID': this.hospitalId
+    };
+  }
+
+  async testConnection() {
+    const url = this.getEndpoint();
+    const start = performance.now();
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: this.buildHeaders(),
+        body: JSON.stringify({
+          hospital_id: this.hospitalId,
+          device_id: 'DEV000001',
+          device_type: 'Ventilator',
+          department: 'Intensive Care Unit (ICU)',
+          timestamp: new Date().toISOString(),
+          battery_health: 98.0,
+          temperature: 36.5,
+          load_percent: 50.0,
+          error_code: 'OK',
+          operating_hours: 1000.0,
+          voltage: 24.0,
+          humidity: 45.0,
+          error_count_7d: 0,
+          battery_cycles: 100,
+          days_since_maint: 15
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      const latency = Math.round(performance.now() - start);
+
+      if (res.ok) {
+        const data = await res.json();
+        return { success: true, latency, data };
+      } else {
+        return { success: false, status: res.status, error: `HTTP ${res.status}: ${res.statusText}` };
+      }
+    } catch (err) {
+      const latency = Math.round(performance.now() - start);
+      return { success: false, error: err.message || 'Cannot reach server' };
+    }
+  }
+
+  async sendTelemetry(payload) {
+    const url = this.getEndpoint();
+    const start = performance.now();
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: this.buildHeaders(),
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      const latency = Math.round(performance.now() - start);
+
+      let data = {};
+      try { data = await res.json(); } catch (e) { data = { raw: await res.text() }; }
+
+      return {
+        success: res.ok,
+        status: res.status,
+        latency,
+        data
+      };
+    } catch (err) {
+      const latency = Math.round(performance.now() - start);
+      return {
+        success: false,
+        status: 0,
+        latency,
+        error: err.message || 'Network / CORS Error'
+      };
+    }
+  }
+}
+
+/**
+ * Console Logger
+ */
+class ConsoleLogger {
+  constructor(containerId) {
+    this.container = document.getElementById(containerId);
+    this.autoScrollEl = document.getElementById('termAutoScroll');
+    this.logs = [];
+    this.maxLines = 200;
+  }
+
+  log(msg, level = 'sys') {
+    const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+    const div = document.createElement('div');
+    div.className = `log-line log-${level}`;
+    div.innerHTML = `<span class="log-time">[${time}]</span> <span>${msg}</span>`;
+
+    this.container.appendChild(div);
+    this.logs.push({ time, level, msg });
+
+    if (this.container.childNodes.length > this.maxLines) {
+      this.container.removeChild(this.container.firstChild);
+    }
+
+    if (this.autoScrollEl && this.autoScrollEl.checked) {
+      this.container.scrollTop = this.container.scrollHeight;
+    }
+  }
+
+  clear() {
+    this.container.innerHTML = `
+      <div class="log-line log-sys">
+        <span class="log-time">[CLEARED]</span>
+        <span>Log buffer reset.</span>
+      </div>
+    `;
+    this.logs = [];
+  }
+
+  exportJSON() {
+    if (!this.logs.length) {
+      alert('No logs in console to export.');
+      return;
+    }
+    const blob = new Blob([JSON.stringify(this.logs, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `logx_telemetry_export_${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+}
+
+/**
+ * Response Card Manager
+ */
+class ResponseCard {
+  constructor() {
+    this.devIdEl = document.getElementById('mlDevId');
+    this.devTypeEl = document.getElementById('mlDevType');
+    this.riskBadgeEl = document.getElementById('mlRiskBadge');
+    this.healthValEl = document.getElementById('mlHealthVal');
+    this.healthBarEl = document.getElementById('mlHealthBar');
+    this.anomalyValEl = document.getElementById('mlAnomalyVal');
+    this.anomalyBarEl = document.getElementById('mlAnomalyBar');
+    this.rootCauseEl = document.getElementById('mlRootCause');
+    this.actionEl = document.getElementById('mlAction');
+    this.latencyEl = document.getElementById('mlLatency');
+
+    this.bannerEl = document.getElementById('alertBanner');
+    this.bannerTitleEl = document.getElementById('bannerTitle');
+    this.bannerMetricsEl = document.getElementById('bannerMetrics');
+    this.bannerActionEl = document.getElementById('bannerAction');
+    this.bannerIconEl = document.getElementById('bannerIcon');
+
+    this.sparklinePoly = document.getElementById('sparklinePoly');
+    this.anomalyHistory = [15, 12, 18, 14, 16, 12, 15, 18, 14, 12];
+  }
+
+  update(response, payload, latencyMs) {
+    const risk = response.risk_level || 'LOW';
+    const health = response.overall_health !== undefined ? response.overall_health : 95.0;
+    const anomaly = response.anomaly_score !== undefined ? response.anomaly_score : 12.0;
+
+    this.devIdEl.textContent = payload.device_id;
+    this.devTypeEl.textContent = payload.device_type;
+    this.riskBadgeEl.textContent = risk;
+    this.riskBadgeEl.className = `risk-badge ${risk}`;
+
+    this.healthValEl.textContent = `${health.toFixed(1)} %`;
+    this.healthBarEl.style.width = `${Math.min(100, Math.max(0, health))}%`;
+    if (health < 30) this.healthBarEl.style.background = 'var(--color-critical)';
+    else if (health < 65) this.healthBarEl.style.background = 'var(--color-high)';
+    else this.healthBarEl.style.background = 'var(--color-low)';
+
+    this.anomalyValEl.textContent = anomaly.toFixed(1);
+    this.anomalyBarEl.style.width = `${Math.min(100, Math.max(0, anomaly))}%`;
+
+    let rootCause = 'None (Normal Operation)';
+    let action = 'Routine Monitoring';
+    if (payload.error_code === 'BAT_CRITICAL' || payload.battery_health < 25) {
+      rootCause = 'Battery Degradation / Internal Resistance';
+      action = 'Schedule Immediate Battery Replacement';
+    } else if (payload.error_code === 'TEMP_CRITICAL' || payload.temperature > 46) {
+      rootCause = 'Cooling Fan Failure / Thermal Overheating';
+      action = 'Inspect Chassis Ventilation & Thermal Paste';
+    } else if (payload.error_code === 'SENSOR_ERR') {
+      rootCause = 'Sensor Transducer Calibration Drift';
+      action = 'Recalibrate Analog Sensor Array';
+    } else if (payload.error_code === 'POWER_FLUC') {
+      rootCause = 'Power Supply Rail Voltage Fluctuation';
+      action = 'Check Power Filter Capacitor / PSU Board';
+    } else if (payload.days_since_maint > 180) {
+      rootCause = 'Overdue Preventive Maintenance';
+      action = 'Perform Full Annual Safety Inspection';
+    }
+
+    this.rootCauseEl.textContent = response.root_cause || rootCause;
+    this.actionEl.textContent = response.recommended_action || action;
+    this.latencyEl.textContent = `${latencyMs} ms`;
+
+    this.updateSparkline(anomaly);
+
+    if (risk === 'CRITICAL' || risk === 'HIGH') {
+      this.showAlertBanner(payload, risk, health, anomaly, response.recommended_action || action);
+    }
+  }
+
+  updateSparkline(anomaly) {
+    this.anomalyHistory.push(anomaly);
+    if (this.anomalyHistory.length > 10) this.anomalyHistory.shift();
+
+    const points = this.anomalyHistory.map((val, idx) => {
+      const x = idx * 20;
+      const y = Math.round(36 - (val / 100) * 32);
+      return `${x},${Math.max(2, Math.min(36, y))}`;
+    }).join(' ');
+
+    this.sparklinePoly.setAttribute('points', points);
+    const lastVal = this.anomalyHistory[this.anomalyHistory.length - 1];
+    if (lastVal > 50) {
+      this.sparklinePoly.setAttribute('stroke', '#ff3b3b');
+    } else if (lastVal > 30) {
+      this.sparklinePoly.setAttribute('stroke', '#ff8f00');
+    } else {
+      this.sparklinePoly.setAttribute('stroke', '#00d4ff');
+    }
+  }
+
+  showAlertBanner(payload, risk, health, anomaly, action) {
+    this.bannerEl.style.display = 'block';
+    if (risk === 'CRITICAL') {
+      this.bannerEl.className = '';
+      this.bannerIconEl.textContent = '🚨';
+      this.bannerTitleEl.textContent = `[CRITICAL ALERT RECEIVED] ${payload.device_id} (${payload.device_type}) — Urgent Maintenance Required`;
+    } else {
+      this.bannerEl.className = 'high-alert';
+      this.bannerIconEl.textContent = '⚠️';
+      this.bannerTitleEl.textContent = `[HIGH RISK ALERT] ${payload.device_id} (${payload.device_type}) — Failure Imminent`;
+    }
+    this.bannerMetricsEl.textContent = `Health: ${health.toFixed(1)}% | Anomaly: ${anomaly.toFixed(1)}`;
+    this.bannerActionEl.textContent = action;
+  }
+
+  dismissBanner() {
+    this.bannerEl.style.display = 'none';
+  }
+}
+
+/**
+ * Autonomous Random Streamer Application
+ */
+class AutonomousLogxApp {
+  constructor() {
+    this.client = new AuraClient();
+    this.logger = new ConsoleLogger('terminalScreen');
+    this.responseCard = new ResponseCard();
+
+    this.timer = null;
+    this.isStreaming = false;
+
+    this.counters = {
+      total: 0,
+      critical: 0,
+      high: 0,
+      medium: 0,
+      low: 0
+    };
+
+    this.initDOM();
+    this.attachEvents();
+  }
+
+  initDOM() {
+    this.serverHostInput = document.getElementById('serverHost');
+    this.serverPortInput = document.getElementById('serverPort');
+    this.hospitalIdInput = document.getElementById('hospitalId');
+    this.apiKeyInput = document.getElementById('apiKey');
+    this.endpointPreview = document.getElementById('endpointPreview');
+
+    this.deviceScope = document.getElementById('deviceScope');
+    this.streamInterval = document.getElementById('streamInterval');
+    this.failureProbability = document.getElementById('failureProbability');
+
+    this.btnToggleStream = document.getElementById('btnToggleStream');
+    this.btnSendSingle = document.getElementById('btnSendSingle');
+
+    // Live display cards
+    this.liveParamDev = document.getElementById('liveParamDev');
+    this.liveParamCode = document.getElementById('liveParamCode');
+    this.liveParamBat = document.getElementById('liveParamBat');
+    this.liveParamTemp = document.getElementById('liveParamTemp');
+    this.liveParamLoad = document.getElementById('liveParamLoad');
+    this.liveParamVolt = document.getElementById('liveParamVolt');
+
+    // Status
+    this.connDot = document.getElementById('connDot');
+    this.connText = document.getElementById('connText');
+    this.ecgContainer = document.getElementById('ecgContainer');
+    this.ecgStatusText = document.getElementById('ecgStatusText');
+    this.headerLogsSent = document.getElementById('headerLogsSent');
+  }
+
+  attachEvents() {
+    [this.serverHostInput, this.serverPortInput, this.hospitalIdInput, this.apiKeyInput].forEach(el => {
+      el.addEventListener('input', () => {
+        this.client.host = this.serverHostInput.value.trim() || '127.0.0.1';
+        this.client.port = this.serverPortInput.value.trim() || '8000';
+        this.client.hospitalId = this.hospitalIdInput.value.trim() || 'demo-hospital';
+        this.client.apiKey = this.apiKeyInput.value.trim();
+        this.endpointPreview.textContent = this.client.getEndpoint();
+        this.connText.textContent = `${this.client.host}:${this.client.port}`;
+      });
+    });
+
+    document.getElementById('btnCopyUrl').addEventListener('click', () => {
+      navigator.clipboard.writeText(this.client.getEndpoint());
+      alert(`Copied Ingest URL:\n${this.client.getEndpoint()}`);
+    });
+
+    document.getElementById('btnTestConn').addEventListener('click', () => this.testServerConnection());
+
+    this.btnToggleStream.addEventListener('click', () => this.toggleStreaming());
+    this.btnSendSingle.addEventListener('click', () => this.sendSingleStep());
+
+    document.getElementById('btnTermClear').addEventListener('click', () => this.logger.clear());
+    document.getElementById('btnTermExport').addEventListener('click', () => this.logger.exportJSON());
+
+    window.addEventListener('keydown', (e) => {
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+      if (e.code === 'Enter' || e.code === 'Space') {
+        e.preventDefault();
+        this.toggleStreaming();
+      } else if (e.code === 'Escape') {
+        this.responseCard.dismissBanner();
+      }
+    });
+  }
+
+  async testServerConnection() {
+    const lbl = document.getElementById('connResultLabel');
+    lbl.textContent = 'Testing...';
+    lbl.style.color = 'var(--color-accent)';
+
+    this.logger.log(`Pinging ${this.client.getEndpoint()} ...`, 'sys');
+    const res = await this.client.testConnection();
+
+    if (res.success) {
+      lbl.textContent = `✓ Connected (${res.latency}ms)`;
+      lbl.style.color = 'var(--color-low)';
+      this.connDot.className = 'status-dot connected';
+      this.logger.log(`✓ Target AURA Server is online! (Latency: ${res.latency}ms)`, 'low');
+    } else {
+      lbl.textContent = `✗ Failed: ${res.error}`;
+      lbl.style.color = 'var(--color-critical)';
+      this.connDot.className = 'status-dot disconnected';
+      this.logger.log(`✗ Cannot reach AURA server at port ${this.client.port}. Ensure backend is running.`, 'err');
+    }
+  }
+
+  /**
+   * Generates a completely randomized, ML-aware telemetry payload
+   */
+  generateRandomPayload() {
+    // 1. Pick Device based on Scope
+    const scope = this.deviceScope.value;
+    let dev;
+    if (scope === 'fixed_dev1') {
+      dev = DEVICE_REGISTRY[0];
+    } else if (scope === 'fixed_dev5') {
+      dev = DEVICE_REGISTRY[1];
+    } else if (scope === 'random_icu') {
+      const icuList = DEVICE_REGISTRY.filter(d => d.dept.includes('ICU'));
+      dev = icuList[Math.floor(Math.random() * icuList.length)];
+    } else if (scope === 'random_rad') {
+      const radList = DEVICE_REGISTRY.filter(d => d.dept.includes('Radiology'));
+      dev = radList[Math.floor(Math.random() * radList.length)];
+    } else {
+      dev = DEVICE_REGISTRY[Math.floor(Math.random() * DEVICE_REGISTRY.length)];
+    }
+
+    // 2. Decide Failure vs Normal based on Probability
+    const failProb = parseFloat(this.failureProbability.value) || 0.25;
+    const isAnomaly = Math.random() < failProb;
+
+    let errorCode = 'OK';
+    let battery = rng(85.0, 99.0);
+    let temp = rng(34.5, 37.8);
+    let load = rng(40.0, 75.0);
+    let volt = rng(22.5, 24.5);
+    let opHours = rng(200.0, 3000.0);
+    let humidity = rng(35.0, 65.0);
+    let cycles = rngi(50, 400);
+    let daysMaint = rngi(5, 90);
+    let err7d = rngi(0, 2);
+
+    if (isAnomaly) {
+      // Pick an anomaly archetype randomly to trigger ML models
+      const archetypes = [
+        'BAT_CRITICAL',  // Critical Battery
+        'BAT_WARN',      // Warning Battery
+        'TEMP_CRITICAL', // Thermal Overheating
+        'TEMP_WARN',     // Thermal Warning
+        'SENSOR_ERR',    // Sensor drift
+        'POWER_FLUC',    // Voltage drops
+        'SYS_RESET',     // MCU Reset
+        'CASCADE'        // Multi-failure crash
+      ];
+      const archetype = archetypes[Math.floor(Math.random() * archetypes.length)];
+
+      if (archetype === 'BAT_CRITICAL') {
+        errorCode = 'BAT_CRITICAL';
+        battery = rng(10.0, 22.0);
+        volt = rng(18.0, 22.0);
+        load = rng(70.0, 90.0);
+        cycles = rngi(800, 1200);
+        daysMaint = rngi(90, 250);
+      } else if (archetype === 'BAT_WARN') {
+        errorCode = 'BAT_WARN';
+        battery = rng(24.0, 35.0);
+        cycles = rngi(600, 900);
+      } else if (archetype === 'TEMP_CRITICAL') {
+        errorCode = 'TEMP_CRITICAL';
+        temp = rng(46.0, 58.0);
+        load = rng(85.0, 98.0);
+        humidity = rng(60.0, 85.0);
+      } else if (archetype === 'TEMP_WARN') {
+        errorCode = 'TEMP_WARN';
+        temp = rng(39.0, 43.5);
+      } else if (archetype === 'SENSOR_ERR') {
+        errorCode = 'SENSOR_ERR';
+        err7d = rngi(8, 25);
+        temp = rng(36.0, 42.0);
+      } else if (archetype === 'POWER_FLUC') {
+        errorCode = 'POWER_FLUC';
+        volt = rng(14.0, 19.0);
+        load = rng(80.0, 95.0);
+        err7d = rngi(5, 15);
+      } else if (archetype === 'SYS_RESET') {
+        errorCode = 'SYS_RESET';
+        load = rng(92.0, 99.9);
+        temp = rng(40.0, 47.0);
+      } else if (archetype === 'CASCADE') {
+        errorCode = 'BAT_CRITICAL';
+        battery = rng(8.0, 15.0);
+        temp = rng(48.0, 60.0);
+        load = rng(94.0, 99.0);
+        volt = rng(12.0, 16.5);
+        daysMaint = rngi(300, 600);
+        cycles = rngi(1100, 1500);
+      }
+    }
+
+    const payload = {
+      hospital_id: this.client.hospitalId,
+      device_id: dev.id,
+      device_type: dev.type,
+      department: dev.dept,
+      timestamp: new Date().toISOString(),
+      battery_health: battery,
+      temperature: temp,
+      load_percent: load,
+      error_code: errorCode,
+      operating_hours: opHours,
+      voltage: volt,
+      humidity: humidity,
+      error_count_7d: err7d,
+      battery_cycles: cycles,
+      days_since_maint: daysMaint
+    };
+
+    // Update Live UI Cards
+    this.liveParamDev.innerHTML = `${dev.id} <span class="unit">${dev.type}</span>`;
+    this.liveParamCode.textContent = errorCode;
+    this.liveParamCode.style.color = errorCode === 'OK' ? 'var(--color-low)' : (errorCode.includes('CRITICAL') ? 'var(--color-critical)' : 'var(--color-high)');
+    this.liveParamBat.innerHTML = `${battery}<span class="unit">%</span>`;
+    this.liveParamTemp.innerHTML = `${temp}<span class="unit">°C</span>`;
+    this.liveParamLoad.innerHTML = `${load}<span class="unit">%</span>`;
+    this.liveParamVolt.innerHTML = `${volt}<span class="unit">V</span>`;
+
+    return payload;
+  }
+
+  async sendSingleStep() {
+    const payload = this.generateRandomPayload();
+
+    this.counters.total++;
+    this.headerLogsSent.textContent = this.counters.total;
+    document.getElementById('kpiTotal').textContent = this.counters.total;
+
+    const res = await this.client.sendTelemetry(payload);
+
+    if (res.success) {
+      const d = res.data;
+      const risk = d.risk_level || 'LOW';
+      const health = d.overall_health !== undefined ? d.overall_health : 90.0;
+      const anomaly = d.anomaly_score !== undefined ? d.anomaly_score : 15.0;
+
+      if (risk === 'CRITICAL') this.counters.critical++;
+      else if (risk === 'HIGH') this.counters.high++;
+      else if (risk === 'MEDIUM') this.counters.medium++;
+      else this.counters.low++;
+
+      this.updateKPIs();
+
+      let logClass = 'low';
+      if (risk === 'CRITICAL') logClass = 'crit';
+      else if (risk === 'HIGH') logClass = 'high';
+      else if (risk === 'MEDIUM') logClass = 'med';
+
+      this.logger.log(
+        `POST ➔ <strong>${payload.device_id}</strong> (${payload.device_type}) | Code: <code>${payload.error_code}</code> | Bat: ${payload.battery_health}% | Temp: ${payload.temperature}°C ➔ <strong>Server: [${risk}]</strong> | Health: ${health.toFixed(1)}% | Anomaly: ${anomaly} (${res.latency}ms)`,
+        logClass
+      );
+
+      this.responseCard.update(d, payload, res.latency);
+      return true;
+    } else {
+      this.logger.log(`POST Failed for ${payload.device_id}: ${res.error || 'Server returned status ' + res.status}`, 'err');
+      return false;
+    }
+  }
+
+  updateKPIs() {
+    document.getElementById('kpiCritical').textContent = this.counters.critical;
+    document.getElementById('kpiHigh').textContent = this.counters.high;
+    document.getElementById('kpiMedium').textContent = this.counters.medium;
+    document.getElementById('kpiLow').textContent = this.counters.low;
+  }
+
+  toggleStreaming() {
+    if (this.isStreaming) {
+      this.stopStreaming();
+    } else {
+      this.startStreaming();
+    }
+  }
+
+  startStreaming() {
+    this.isStreaming = true;
+    this.btnToggleStream.textContent = '⏹ STOP AUTOMATIC STREAM';
+    this.btnToggleStream.className = 'btn-danger';
+
+    this.ecgContainer.className = 'ecg-container ecg-active';
+    this.ecgStatusText.textContent = 'AUTO-STREAMING';
+    this.connDot.className = 'status-dot streaming';
+
+    const interval = parseInt(this.streamInterval.value, 10) || 3000;
+    this.logger.log(`Started autonomous mixed-parameter telemetry stream (every ${interval / 1000}s).`, 'sys');
+
+    this.sendSingleStep();
+
+    this.timer = setInterval(() => {
+      this.sendSingleStep();
+    }, interval);
+  }
+
+  stopStreaming() {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+    this.isStreaming = false;
+    this.btnToggleStream.textContent = '▶ START AUTOMATIC STREAM';
+    this.btnToggleStream.className = 'btn-primary';
+
+    this.ecgContainer.className = 'ecg-container';
+    this.ecgStatusText.textContent = 'STANDBY';
+    this.connDot.className = 'status-dot connected';
+    this.logger.log(`Telemetry stream paused.`, 'sys');
+  }
+}
+
+// Global App Initialization
+let auraApp;
+window.addEventListener('DOMContentLoaded', () => {
+  auraApp = new AutonomousLogxApp();
+});
+</script>
 </body>
 </html>

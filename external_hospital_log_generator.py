@@ -1,216 +1,180 @@
 #!/usr/bin/env python3
 """
 ====================================================================================================
-AURA MEDICAL DEVICE RELIABILITY INTELLIGENCE PLATFORM
-EXTERNAL MEDICAL EQUIPMENT LOG GENERATOR & TELEMETRY STREAMER (CLI)
+LOGx — Autonomous Random Telemetry & ML Anomaly Streamer
 ====================================================================================================
-Description: Standalone python simulator that streams live medical device telemetry logs over HTTP REST API
-             into the central AURA platform server.
+Automatically generates and streams mixed random telemetry logs (healthy OK values combined
+with realistic random critical and warning conditions) into AURA AI Platform.
 ====================================================================================================
 """
-
-import sys
 import time
 import json
 import random
 import datetime
 import argparse
+import sys
+
 try:
     import requests
 except ImportError:
     print("\n[ERROR] 'requests' package is required. Install it using:\n  pip install requests\n")
     sys.exit(1)
 
-# ANSI Color Codes for Terminal Output
-GREEN = "\033[92m"
-YELLOW = "\033[93m"
-RED = "\033[91m"
-CYAN = "\033[96m"
-MAGENTA = "\033[95m"
-BOLD = "\033[1m"
-RESET = "\033[0m"
-
-DEVICES_CATALOG = [
-    {"id": "DEV000001", "type": "Ventilator", "dept": "Intensive Care Unit (ICU)"},
-    {"id": "DEV000002", "type": "Patient monitor", "dept": "Intensive Care Unit (ICU)"},
-    {"id": "DEV000003", "type": "CT scanner", "dept": "Radiology Department"},
-    {"id": "DEV000004", "type": "Infusion pump", "dept": "General Ward"},
-    {"id": "DEV000005", "type": "ECG machine", "dept": "Clinical Laboratory"},
-    {"id": "DEV000006", "type": "MRI scanner", "dept": "Radiology Department"},
-    {"id": "DEV000007", "type": "Defibrillator", "dept": "Emergency Ward"},
-    {"id": "DEV000008", "type": "Dialysis unit", "dept": "Nephrology Unit"}
+DEVICE_REGISTRY = [
+    {"id": "DEV000001", "type": "Ventilator",       "dept": "Intensive Care Unit (ICU)"},
+    {"id": "DEV000005", "type": "Patient monitor",   "dept": "Intensive Care Unit (ICU)"},
+    {"id": "DEV000010", "type": "CT scanner",        "dept": "Radiology Department"},
+    {"id": "DEV000015", "type": "MRI scanner",       "dept": "Radiology Department"},
+    {"id": "DEV000020", "type": "Blood analyzer",    "dept": "Clinical Laboratory"},
+    {"id": "DEV000025", "type": "Infusion pump",     "dept": "General Ward"},
+    {"id": "DEV000030", "type": "Defibrillator",     "dept": "Intensive Care Unit (ICU)"},
+    {"id": "DEV000035", "type": "ECG machine",       "dept": "General Ward"},
+    {"id": "DEV000040", "type": "Ultrasound machine","dept": "Radiology Department"},
+    {"id": "DEV000045", "type": "PCR machine",       "dept": "Clinical Laboratory"},
+    {"id": "DEV000050", "type": "Anesthesia machine","dept": "Intensive Care Unit (ICU)"},
+    {"id": "DEV000055", "type": "X-ray machine",     "dept": "Radiology Department"},
 ]
 
-SCENARIOS = ["OK", "BAT_WARN", "BAT_CRITICAL", "TEMP_WARN", "TEMP_CRITICAL", "SENSOR_ERR", "POWER_FLUC", "SYS_RESET"]
+def rng(lo, hi): return round(random.uniform(lo, hi), 1)
+def rngi(lo, hi): return random.randint(lo, hi)
 
-def generate_telemetry_payload(hospital_id: str, device: dict, force_scenario: str = None) -> dict:
-    """
-    Generates a telemetry log conforming strictly to the AURA Ingestion Specification.
-    """
-    scenario = force_scenario if force_scenario else random.choice(["OK", "OK", "OK", "OK", "OK", "BAT_WARN", "TEMP_WARN"])
-    
-    battery = round(random.uniform(85.0, 99.0), 1)
-    temp = round(random.uniform(35.5, 37.8), 1)
-    load = round(random.uniform(40.0, 80.0), 1)
-    voltage = round(random.uniform(23.2, 24.5), 1)
-    op_hours = round(random.uniform(500.0, 4800.0), 1)
-    error_code = scenario
+def generate_autonomous_random_payload(hospital_id: str, anomaly_prob: float = 0.25) -> dict:
+    dev = random.choice(DEVICE_REGISTRY)
+    is_anomaly = random.random() < anomaly_prob
 
-    if scenario == "BAT_CRITICAL":
-        battery = round(random.uniform(12.0, 22.0), 1)
-        voltage = round(random.uniform(16.5, 18.5), 1)
-        load = round(random.uniform(75.0, 95.0), 1)
-    elif scenario == "BAT_WARN":
-        battery = round(random.uniform(24.0, 32.0), 1)
-    elif scenario == "TEMP_CRITICAL":
-        temp = round(random.uniform(45.0, 52.5), 1)
-        load = round(random.uniform(85.0, 98.0), 1)
-    elif scenario == "TEMP_WARN":
-        temp = round(random.uniform(39.0, 42.5), 1)
-    elif scenario == "SENSOR_ERR":
-        temp = round(random.uniform(15.0, 65.0), 1) # Erratic noise
-        battery = round(random.uniform(30.0, 90.0), 1)
-    elif scenario == "POWER_FLUC":
-        voltage = round(random.uniform(13.0, 28.0), 1)
-    elif scenario == "SYS_RESET":
-        load = 99.9
-        op_hours = 0.5
+    error_code = "OK"
+    battery = rng(85.0, 99.0)
+    temp = rng(34.5, 37.8)
+    load = rng(40.0, 75.0)
+    volt = rng(22.5, 24.5)
+    op_hours = rng(200.0, 3500.0)
+    humidity = rng(35.0, 65.0)
+    cycles = rngi(50, 400)
+    days_maint = rngi(5, 90)
+    err7d = rngi(0, 2)
+
+    if is_anomaly:
+        archetype = random.choice([
+            "BAT_CRITICAL", "BAT_WARN", "TEMP_CRITICAL", "TEMP_WARN",
+            "SENSOR_ERR", "POWER_FLUC", "SYS_RESET", "CASCADE"
+        ])
+
+        if archetype == "BAT_CRITICAL":
+            error_code = "BAT_CRITICAL"
+            battery = rng(10.0, 22.0)
+            volt = rng(18.0, 22.0)
+            load = rng(70.0, 90.0)
+            cycles = rngi(800, 1200)
+            days_maint = rngi(90, 250)
+        elif archetype == "BAT_WARN":
+            error_code = "BAT_WARN"
+            battery = rng(24.0, 35.0)
+            cycles = rngi(600, 900)
+        elif archetype == "TEMP_CRITICAL":
+            error_code = "TEMP_CRITICAL"
+            temp = rng(46.0, 58.0)
+            load = rng(85.0, 98.0)
+            humidity = rng(60.0, 85.0)
+        elif archetype == "TEMP_WARN":
+            error_code = "TEMP_WARN"
+            temp = rng(39.0, 43.5)
+        elif archetype == "SENSOR_ERR":
+            error_code = "SENSOR_ERR"
+            err7d = rngi(8, 25)
+            temp = rng(36.0, 42.0)
+        elif archetype == "POWER_FLUC":
+            error_code = "POWER_FLUC"
+            volt = rng(14.0, 19.0)
+            load = rng(80.0, 95.0)
+            err7d = rngi(5, 15)
+        elif archetype == "SYS_RESET":
+            error_code = "SYS_RESET"
+            load = rng(92.0, 99.9)
+            temp = rng(40.0, 47.0)
+        elif archetype == "CASCADE":
+            error_code = "BAT_CRITICAL"
+            battery = rng(8.0, 15.0)
+            temp = rng(48.0, 60.0)
+            load = rng(94.0, 99.0)
+            volt = rng(12.0, 16.5)
+            days_maint = rngi(300, 600)
+            cycles = rngi(1100, 1500)
 
     payload = {
         "hospital_id": hospital_id,
-        "device_id": device["id"],
-        "device_type": device["type"],
-        "department": device["dept"],
+        "device_id": dev["id"],
+        "device_type": dev["type"],
+        "department": dev["dept"],
         "timestamp": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "battery_health": battery,
         "temperature": temp,
         "load_percent": load,
         "error_code": error_code,
         "operating_hours": op_hours,
-        "voltage": voltage
+        "voltage": volt,
+        "humidity": humidity,
+        "error_count_7d": err7d,
+        "battery_cycles": cycles,
+        "days_since_maint": days_maint
     }
     return payload
 
-def run_streamer(server_ip: str, server_port: int, hospital_id: str, api_key: str, interval: float, count: int, force_scenario: str, fleet_mode: bool):
-    ingest_url = f"http://{server_ip}:{server_port}/api/v1/ingest/telemetry"
+def main():
+    p = argparse.ArgumentParser(description="LOGx Autonomous Random Telemetry Streamer")
+    p.add_argument("--host", default="127.0.0.1", help="AURA host (default: 127.0.0.1)")
+    p.add_argument("--port", default="8000", help="AURA port (default: 8000)")
+    p.add_argument("--hospital", default="demo-hospital", help="Hospital ID")
+    p.add_argument("--interval", type=float, default=3.0, help="Seconds between logs (default: 3.0)")
+    p.add_argument("--anomaly-prob", type=float, default=0.25, help="Probability of random failure injection (0.0 to 1.0)")
+    p.add_argument("--count", type=int, default=0, help="Logs to send (0 = infinite)")
+    args = p.parse_args()
+
+    url = f"http://{args.host}:{args.port}/api/v1/ingest/telemetry"
     headers = {
         "Content-Type": "application/json",
-        "X-API-Key": api_key,
-        "Hospital-ID": hospital_id
+        "X-API-Key": "aura_live_ingest_key_2026",
+        "Hospital-ID": args.hospital
     }
 
     print("=" * 80)
-    print(f"{CYAN}{BOLD} AURA EXTERNAL HOSPITAL MEDICAL LOG GENERATOR & STREAMER{RESET}")
+    print(" LOGx Autonomous Random Telemetry Streamer")
+    print(f" Target Server : {url}")
+    print(f" Interval      : {args.interval}s | Anomaly Rate: {int(args.anomaly_prob*100)}%")
     print("=" * 80)
-    print(f" {BOLD}Target Server URL:{RESET}  {ingest_url}")
-    print(f" {BOLD}Hospital ID:{RESET}        {hospital_id}")
-    print(f" {BOLD}Stream Mode:{RESET}        {'Fleet (Multi-Device Round-Robin)' if fleet_mode else 'Single Device (DEV000001)'}")
-    print(f" {BOLD}Stream Interval:{RESET}    {interval} seconds")
-    print(f" {BOLD}Active Scenario:{RESET}    {force_scenario if force_scenario else 'Dynamic (Normal with periodic failures)'}")
-    print("=" * 80)
-    print(f"{YELLOW}Press Ctrl+C at any time to pause or terminate the stream.{RESET}\n")
+    print("Streaming live mixed telemetry logs... Press Ctrl+C to stop.\n")
 
     step = 0
-    dev_index = 0
-    success_count = 0
-    failure_count = 0
+    while True:
+        step += 1
+        if args.count and step > args.count:
+            print(f"\n[DONE] Sent requested {args.count} logs.")
+            break
 
-    try:
-        while True:
-            step += 1
-            if count and step > count:
-                print(f"\n{GREEN}[COMPLETE] Finished sending requested {count} telemetry logs.{RESET}")
-                break
+        payload = generate_autonomous_random_payload(args.hospital, args.anomaly_prob)
 
-            if fleet_mode:
-                dev = DEVICES_CATALOG[dev_index]
-                dev_index = (dev_index + 1) % len(DEVICES_CATALOG)
+        try:
+            start_t = time.perf_counter()
+            r = requests.post(url, json=payload, headers=headers, timeout=5)
+            lat = round((time.perf_counter() - start_t) * 1000)
+
+            if r.status_code == 200:
+                d = r.json()
+                risk = d.get("risk_level", "LOW")
+                health = d.get("overall_health", 90.0)
+                anomaly = d.get("anomaly_score", 15.0)
+
+                icon = "🚨 CRITICAL" if risk == "CRITICAL" else ("⚠️ HIGH" if risk == "HIGH" else ("📊 MEDIUM" if risk == "MEDIUM" else "✅ LOW"))
+                print(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] {icon:11} | {payload['device_id']} ({payload['device_type']}) "
+                      f"Code:{payload['error_code']:13} Bat:{payload['battery_health']:5}% Temp:{payload['temperature']:5}°C "
+                      f"➔ Risk:{risk:8} Health:{health:5}% Anomaly:{anomaly} ({lat}ms)")
             else:
-                dev = DEVICES_CATALOG[0]
+                print(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] ❌ HTTP {r.status_code}: {r.text[:120]}")
+        except requests.exceptions.ConnectionError:
+            print(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] ❌ Connection failed to {url}. Is AURA server running?")
+        except Exception as e:
+            print(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] ❌ Error: {e}")
 
-            # In dynamic mode, inject a simulated failure every 10 logs
-            step_scenario = force_scenario
-            if not step_scenario:
-                if step % 10 == 0:
-                    step_scenario = random.choice(["BAT_CRITICAL", "TEMP_CRITICAL", "SENSOR_ERR"])
-                else:
-                    step_scenario = "OK"
-
-            payload = generate_telemetry_payload(hospital_id, dev, force_scenario=step_scenario)
-            now_str = datetime.datetime.now().strftime("%H:%M:%S")
-
-            try:
-                start_t = time.perf_counter()
-                res = requests.post(ingest_url, json=payload, headers=headers, timeout=5.0)
-                latency_ms = round((time.perf_counter() - start_t) * 1000)
-
-                if res.status_code == 200:
-                    success_count += 1
-                    try:
-                        data = res.json()
-                        status = data.get("status", "INGESTED")
-                        anomaly_score = data.get("anomaly_score", "N/A")
-                        anomaly_flag = data.get("anomaly_detected", False)
-                    except Exception:
-                        status = "200 OK"
-                        anomaly_score = "N/A"
-                        anomaly_flag = False
-
-                    if payload["error_code"] != "OK" or anomaly_flag:
-                        tag_color = RED
-                        code_tag = f"{RED}[FAULT: {payload['error_code']}]{RESET}"
-                    else:
-                        tag_color = GREEN
-                        code_tag = f"{GREEN}[OK]{RESET}"
-
-                    print(f"[{now_str}] {code_tag} {CYAN}{payload['device_id']}{RESET} ({dev['type']}) ➔ {tag_color}ACK 200{RESET} | Anomaly Score: {MAGENTA}{anomaly_score}{RESET} | Bat: {payload['battery_health']}% | Temp: {payload['temperature']}°C ({latency_ms}ms)")
-                else:
-                    failure_count += 1
-                    print(f"[{now_str}] {RED}[HTTP {res.status_code}]{RESET} {payload['device_id']} Error: {res.text[:120]} ({latency_ms}ms)")
-
-            except requests.exceptions.ConnectionError:
-                failure_count += 1
-                print(f"[{now_str}] {RED}[CONN ERROR]{RESET} Unable to connect to {ingest_url}. Is AURA backend running?")
-            except requests.exceptions.Timeout:
-                failure_count += 1
-                print(f"[{now_str}] {RED}[TIMEOUT]{RESET} Request timed out after 5 seconds.")
-            except Exception as e:
-                failure_count += 1
-                print(f"[{now_str}] {RED}[ERROR]{RESET} {e}")
-
-            time.sleep(interval)
-
-    except KeyboardInterrupt:
-        print(f"\n\n{YELLOW}Telemetry stream interrupted by user.{RESET}")
-        print(f"Summary: {GREEN}{success_count} logs acknowledged{RESET}, {RED}{failure_count} errors/dropped{RESET} out of {step - 1} transmissions.")
-
-def main():
-    parser = argparse.ArgumentParser(
-        description="AURA External Medical Equipment Telemetry Streamer & Anomaly Generator"
-    )
-    parser.add_argument("--server", "-s", default="127.0.0.1", help="Target AURA Server Host or IP (default: 127.0.0.1)")
-    parser.add_argument("--port", "-p", type=int, default=8000, help="Target Server Port (default: 8000)")
-    parser.add_argument("--hospital", default="demo-hospital", help="Target Hospital ID (default: demo-hospital)")
-    parser.add_argument("--api-key", default="aura_live_ingest_key_2026", help="Ingestion API Key (default: aura_live_ingest_key_2026)")
-    parser.add_argument("--interval", "-i", type=float, default=3.0, help="Stream interval in seconds (default: 3.0)")
-    parser.add_argument("--count", "-c", type=int, default=0, help="Number of logs to send (0 = infinite continuous stream)")
-    parser.add_argument("--scenario", choices=SCENARIOS, default=None, help="Force a continuous failure scenario (e.g. BAT_CRITICAL, TEMP_CRITICAL, SENSOR_ERR)")
-    parser.add_argument("--fleet", action="store_true", default=True, help="Simulate multi-device hospital fleet (default: True)")
-    parser.add_argument("--single", action="store_true", help="Simulate single device only (DEV000001)")
-
-    args = parser.parse_args()
-    fleet_mode = not args.single
-
-    run_streamer(
-        server_ip=args.server,
-        server_port=args.port,
-        hospital_id=args.hospital,
-        api_key=args.api_key,
-        interval=args.interval,
-        count=args.count,
-        force_scenario=args.scenario,
-        fleet_mode=fleet_mode
-    )
+        time.sleep(args.interval)
 
 if __name__ == "__main__":
     main()

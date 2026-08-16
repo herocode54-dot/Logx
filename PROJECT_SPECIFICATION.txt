@@ -1,0 +1,134 @@
+====================================================================================================
+AURA MEDICAL DEVICE RELIABILITY INTELLIGENCE PLATFORM
+EXTERNAL MEDICAL EQUIPMENT LOG GENERATOR & TELEMETRY STREAMER (LOGx)
+COMPREHENSIVE PROJECT SPECIFICATION & CONTEXT BLUEPRINT
+====================================================================================================
+Target System Architecture: AURA AI-Powered Medical Device Reliability Intelligence Platform
+Purpose: Complete context, architecture, API specifications, payload schemas, component inventory,
+         and integration instructions for an AI Agent or Developer to understand and run this project.
+====================================================================================================
+
+1. PROJECT OVERVIEW & ARCHITECTURE
+----------------------------------------------------------------------------------------------------
+Logx is a standalone Medical Device Telemetry Simulator designed to run independently (on a separate 
+PC, laptop, virtual machine, or docker container) and stream live equipment health records, sensor 
+telemetry, and failure codes to a central server (AURA AI Platform).
+
+Architecture Topology:
++-------------------------------------------------------------+
+| LOGx Standalone Client (Browser Web App or Python CLI)       |
+|  - Simulates ICU, Radiology, Lab, OR, Ward Devices          |
+|  - Generates Battery, Thermal, Voltage, Workload metrics    |
+|  - Injects Anomaly & Failure Scenarios                      |
++-------------------------------------------------------------+
+                            │
+               HTTP REST POST / JSON Payloads
+        Header: X-API-Key, Hospital-ID: demo-hospital
+                            ▼
++-------------------------------------------------------------+
+| Central AURA Backend Server (FastAPI / ML Pipeline :8000)   |
+|  - Endpoint: POST /api/v1/ingest/telemetry                  |
+|  - Real-time ML Anomaly Detection / Isolation Forest / XGB  |
+|  - SHAP Explainability & Digital Twin Updates               |
+|  - Central Dashboard Live Charts & Alerts                   |
++-------------------------------------------------------------+
+
+
+2. CENTRAL SERVER INGESTION SPECIFICATION
+----------------------------------------------------------------------------------------------------
+Base Ingestion URL:
+  http://<AURA_SERVER_IP>:8000/api/v1/ingest/telemetry
+
+HTTP Method:
+  POST
+
+Required Headers:
+  Content-Type: application/json
+  X-API-Key: aura_live_ingest_key_2026
+  Hospital-ID: demo-hospital (or target hospital identifier)
+
+Telemetry JSON Payload Schema:
+{
+  "hospital_id": "demo-hospital",
+  "device_id": "DEV000001",
+  "device_type": "Ventilator",
+  "department": "Intensive Care Unit (ICU)",
+  "timestamp": "2026-08-16T00:20:00Z",
+  "battery_health": 88.5,
+  "temperature": 37.2,
+  "load_percent": 65.0,
+  "error_code": "OK",
+  "operating_hours": 1420.5,
+  "voltage": 23.8
+}
+
+Supported Error Codes & Injected Scenarios:
+- "OK"            : Normal operational state (Healthy parameters: Battery >85%, Temp ~36.8C, Volt ~24V)
+- "BAT_WARN"      : Low battery warning threshold (Battery ~25-32%)
+- "BAT_CRITICAL"  : Critical battery failure (Battery ~12-22%, Voltage drops to ~17V)
+- "TEMP_WARN"     : Elevated temperature warning (Temp ~39-42C)
+- "TEMP_CRITICAL" : Thermal overheating failure risk (Temp ~46-52C, High load factor)
+- "SENSOR_ERR"    : Sensor calibration drift or erratic noise
+- "POWER_FLUC"    : Voltage power supply fluctuation (Voltage ~14-28V erratic)
+- "SYS_RESET"     : Microcontroller reboot / freeze anomaly event
+
+
+3. FILE INVENTORY & RESPONSIBILITIES
+----------------------------------------------------------------------------------------------------
+Directory Path: c:\Users\dharu\Videos\Logx\
+
+1. `index.html`:
+   - Interactive single-page web dashboard with dark cyber-medical theme.
+   - Target Server Settings Panel (Host, Port, Hospital ID, API Key, Live Ping Test).
+   - Single Device vs. Multi-Device Fleet Simulator (5 standard hospital devices in rotation).
+   - Live Telemetry Gauges (Battery, Temp, Load, Voltage) & Real-time Canvas Waveform.
+   - Scenario Injector & Instant Burst Buttons (BAT_CRITICAL, TEMP_CRITICAL, SENSOR_ERR, etc.).
+   - Live Terminal Console with auto-scroll, color-coded ACK/Anomaly responses, and JSON export.
+
+2. `styles.css`:
+   - Complete CSS design system with glassmorphism, responsive 2-column layout, and neon status tags.
+   - Clean typography using Google Fonts (Outfit, Inter, Fira Code).
+
+3. `app.js`:
+   - Core JavaScript engine (AuraLogGenerator class).
+   - Manages interval-based asynchronous HTTP POST transmissions using fetch API.
+   - Handles simulated telemetry math, failure injection logic, latency calculation, and DOM updates.
+   - Features 60 FPS oscilloscope ECG waveform renderer on HTML5 Canvas.
+
+4. `external_hospital_log_generator.py`:
+   - Standalone Python CLI streamer with ANSI color-coded terminal log outputs.
+   - CLI flags: --server, --port, --hospital, --api-key, --interval, --count, --scenario, --fleet, --single.
+   - Zero external dependencies other than standard Python libraries and `requests`.
+
+5. `README.md`:
+   - High-level markdown documentation and quick-start instructions.
+
+
+4. HOW TO RUN & EXECUTE
+----------------------------------------------------------------------------------------------------
+A. Running the Web Simulator:
+   1. In terminal:
+      python -m http.server 3000
+   2. Open browser:
+      http://localhost:3000
+   3. Configure Target Server IP (default 127.0.0.1:8000) and click 'Start Log Stream'.
+
+B. Running the Python CLI Generator:
+   1. Ensure requests is installed:
+      pip install requests
+   2. Run continuous streamer:
+      python external_hospital_log_generator.py --server 127.0.0.1 --port 8000 --interval 3.0
+   3. Run with forced failure injection:
+      python external_hospital_log_generator.py --scenario BAT_CRITICAL --interval 1.5
+
+
+5. INTEGRATION & BACKEND EXPECTATIONS
+----------------------------------------------------------------------------------------------------
+The central AURA backend server (e.g. at c:\Users\dharu\Videos\medical-device-failure-prediction\backend)
+should have:
+1. Active FastAPI route at `POST /api/v1/ingest/telemetry`.
+2. CORS enabled (CORSMiddleware allow_origins=["*"]) to permit browser requests from localhost:3000.
+3. Server binding to 0.0.0.0 if running across multiple physical machines on the LAN.
+====================================================================================================
+END OF BLUEPRINT FILE
+====================================================================================================
